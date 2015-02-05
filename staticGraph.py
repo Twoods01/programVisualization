@@ -51,7 +51,6 @@ class StaticGraph(graphInterface):
 
         x = 25
         y = window.height / 2
-        print(self.parsed.get_method_invocations_in_method(self.current.method))
         self.chain_nodes(self.parsed.get_method_invocations_in_method(self.current.method), None, x, y)
 
         for node in self.nodes:
@@ -67,27 +66,33 @@ class StaticGraph(graphInterface):
         if self.frames_drawn == 2:
             self.needs_redraw = False
 
+        print("")
+
     #Recursively chains branched_node_array together, returns the parents of the previous branch
     def chain_nodes(self, branched_node_array, parent_nodes, x, y):
         if len(branched_node_array) == 0:
             return None
 
+        self.print_nested(branched_node_array)
         #New branch
         if hasattr(branched_node_array[0], '__iter__'):
             #Store the Y position the branch starts at
             start_y = y
             #Calculate the total number of branches in this branch recursively
-            number_of_branches = self.count_branches(branched_node_array)
+            number_of_branches = self.count_branches(branched_node_array[0])
+
             #Height of this branch is the height of a node times the number of branches
             total_height = ((vertical_buffer + node_height) * number_of_branches)
 
             #For the first path in this branch, determine half of it's height
+
             half_height_cur_branch = ((self.count_branches(branched_node_array[0][0]) * (node_height + vertical_buffer)) / 2)
             #Increment Y by half the total height minus half the height of the first path
             y += (total_height / 2) - half_height_cur_branch
 
             #Find the longest path within this branch
-            longest_array_length = self.longest_array(branched_node_array)
+            longest_array_length = self.longest_array(branched_node_array[0])
+            print(str(number_of_branches) + " branches longest is " + str(longest_array_length))
             new_parents = []
             i = 0
 
@@ -148,22 +153,37 @@ class StaticGraph(graphInterface):
 
     #Returns the length of the longest array found within |nested_array|
     def longest_array(self, nested_array):
-        if len(nested_array) == 0:
-            return 0
-
-        if hasattr(nested_array[0], '__iter__'):
-            longest = 0
-            for branch in nested_array[0]:
-                length = self.longest_array(branch)
-                if length > longest:
-                    longest = length
-
-            return longest + self.longest_array(nested_array[1:])
-        else:
+        #Not an array
+        if not hasattr(nested_array, '__iter__'):
+            return 1
+        #Non-Nested array
+        if not any(hasattr(el, '__iter__') for el in nested_array):
             return len(nested_array)
+        #Nested array
+        else:
+            total_len = 0
+            longest = 0
+            for branch in nested_array:
+                if hasattr(branch, '__iter__'):
+                    length = self.longest_array(branch)
+
+                    if length > longest:
+                        longest = length
+
+                else:
+                    total_len += 1 + longest
+                    longest = 0
+
+            if longest != 0:
+                total_len += longest
+
+            return total_len
 
     #Returns the number of branches within nested_array
     def count_branches(self, nested_array):
+        if not hasattr(nested_array, '__iter__'):
+            return 0
+
         branches = 0
         has_inner_branches = False
         for branch in nested_array:

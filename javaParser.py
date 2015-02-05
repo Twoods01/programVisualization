@@ -257,16 +257,22 @@ class Javap:
         # create a nested array to represent code branches
         branch_array = [m.MethodInvocation("Start")]
         for statement in method.body:
-            methods_this_statement = flatten(statement.get_method_invocations())
+            methods_this_statement = statement.get_method_invocations()
             #Get the intersection between user defined method invocations and method invocations this statement
             # if its not empty add stuff to branch_array
-            user_methods_this_statement = set(methods_this_statement) & set(array)
-            if user_methods_this_statement != set():
-                if type(statement) is m.IfThenElse or type(statement) is m.Try:
-                    branch_array.append(statement.get_method_invocations_per_branch())
-                else:
-                    for method in user_methods_this_statement:
-                        branch_array.append(method)
+            user_methods_this_statement = set(flatten(methods_this_statement)) & set(array)
+
+            #Have to check predicate for method call here otherwise array structure gets ruined
+            if type(statement) is m.IfThenElse:
+                method_in_pred = flatten(statement.predicate.get_method_invocations())
+                if len(method_in_pred) != 0:
+                    branch_array.extend(method_in_pred)
+
+            #if user_methods_this_statement != set():
+            if type(statement) is m.IfThenElse or type(statement) is m.Try:
+                branch_array.append(statement.get_method_invocations())
+            else:
+                branch_array.extend(methods_this_statement)
 
             if type(statement) is m.Return:
                 branch_array.append(m.MethodInvocation("Return"))

@@ -1,5 +1,6 @@
 def flatten(x):
     result = []
+    print(x)
     for el in x:
         if hasattr(el, "__iter__") and not isinstance(el, basestring):
             result.extend(flatten(el))
@@ -197,7 +198,7 @@ class FieldDeclaration(SourceElement):
     def get_method_invocations(self):
         invocations = []
         for var in self.variable_declarators:
-            invocations.append(var.get_method_invocations())
+            invocations.extend(var.get_method_invocations())
         return invocations
 
     def get_returns(self):
@@ -389,7 +390,7 @@ class VariableDeclarator(SourceElement):
     def get_method_invocations(self):
         inv = []
         if self.initializer is not None:
-            inv.append(self.initializer.get_method_invocations())
+            inv.extend(self.initializer.get_method_invocations())
         return inv
 
     def get_returns(self):
@@ -635,8 +636,8 @@ class BinaryExpression(Expression):
 
     def get_method_invocations(self):
         invocations = []
-        invocations.append(self.lhs.get_method_invocations())
-        invocations.append(self.rhs.get_method_invocations())
+        invocations.extend(self.lhs.get_method_invocations())
+        invocations.extend(self.rhs.get_method_invocations())
         return invocations
 
     def get_returns(self):
@@ -804,8 +805,8 @@ class MethodInvocation(Expression):
     def get_method_invocations(self):
         invocations = []
         for arg in self.arguments:
-            invocations.append(arg.get_method_invocations())
-        invocations.append(self)
+            invocations.extend(arg.get_method_invocations())
+        invocations.extend([self])
         return invocations
 
     def get_returns(self):
@@ -843,23 +844,8 @@ class IfThenElse(Statement):
             if self.if_false is not None:
                 self.if_false.accept(visitor)
 
+
     def get_method_invocations(self):
-        invocations = []
-        if type(self.if_true) is Block:
-            for statement in self.if_true:
-                invocations.append(statement.get_method_invocations())
-        else:
-            invocations.append(self.if_true.get_method_invocations())
-
-        if type(self.if_false) is Block:
-            for statement in self.if_false:
-                invocations.append(statement.get_method_invocations())
-        elif self.if_false is not None:
-            invocations.append(self.if_false.get_method_invocations())
-
-        return invocations
-
-    def get_method_invocations_per_branch(self):
         array = []
         block = []
 
@@ -868,7 +854,7 @@ class IfThenElse(Statement):
                 if type(statement) is IfThenElse:
                     if len(block) == 0:
                         block.append(MethodInvocation("InvisibleNode"))
-                    block.append(statement.get_method_invocations_per_branch())
+                    block.append(statement.get_method_invocations())
                 elif type(statement) is Return:
                     block.append(MethodInvocation("Return"))
                 else:
@@ -876,29 +862,31 @@ class IfThenElse(Statement):
                     if len(methods_in_statement) > 0:
                         block.extend(methods_in_statement)
 
-            array.append(block)
+            if len(block) > 0:
+                array.append(block)
+
         else:
             array.append(flatten(self.if_true.get_method_invocations()))
 
         block = []
-        print(self)
         if type(self.if_false) is Block:
             for statement in self.if_false:
                 if type(statement) is IfThenElse:
-                    block.append(statement.get_method_invocations_per_branch())
+                    block.append(statement.get_method_invocations())
                 elif type(statement) is Return:
                     block.append(MethodInvocation("Return"))
                 else:
+                    print(statement)
                     methods_in_statement = flatten(statement.get_method_invocations())
-                    print(methods_in_statement)
                     if len(methods_in_statement) > 0:
                         block.extend(methods_in_statement)
 
-            array.append(block)
+            if len(block) > 0:
+                array.append(block)
+
         elif type(self.if_false) is IfThenElse:
-            array.extend(self.if_false.get_method_invocations_per_branch())
+            array.extend(self.if_false.get_method_invocations())
         elif self.if_false is not None:
-            print("THIS ONE")
             array.append(flatten(self.if_false.get_method_invocations()))
         else:
             array.append([MethodInvocation("InvisibleNode")])
@@ -953,9 +941,24 @@ class While(Statement):
 
     def get_method_invocations(self):
         invocations = []
-        invocations.append(self.predicate.get_method_invocations())
+        inv_in_pred = flatten(self.predicate.get_method_invocations())
+        if len(inv_in_pred) != 0:
+            invocations.extend(inv_in_pred)
+
         for statement in self.body:
-            invocations.append(statement.get_method_invocations())
+            inv = statement.get_method_invocations()
+
+            #Have to check predicate for method call here otherwise array structure gets ruined
+            if type(statement) is IfThenElse:
+                method_in_pred = flatten(statement.predicate.get_method_invocations())
+                if len(method_in_pred) != 0:
+                    invocations.extend(method_in_pred)
+
+            if len(flatten(inv)) != 0:
+                if len(flatten(inv)) == 1:
+                    invocations.extend(inv)
+                else:
+                    invocations.append(inv)
 
         return invocations
 
@@ -986,16 +989,28 @@ class For(Statement):
 
     def get_method_invocations(self):
         invocations = []
-        invocations.append(self.init.get_method_invocations())
-        invocations.append(self.predicate.get_method_invocations())
+        invocations.extend(self.init.get_method_invocations())
+        invocations.extend(self.predicate.get_method_invocations())
         for update in self.update:
-            invocations.append(update.get_method_invocations())
+            invocations.extend(update.get_method_invocations())
 
         if type(self.body) is Block:
             for statement in self.body:
-                invocations.append(statement.get_method_invocations())
+                inv = statement.get_method_invocations()
+
+                #Have to check predicate for method call here otherwise array structure gets ruined
+                if type(statement) is IfThenElse:
+                    method_in_pred = flatten(statement.predicate.get_method_invocations())
+                    if len(method_in_pred) != 0:
+                        invocations.extend(method_in_pred)
+
+                if len(flatten(inv)) != 0:
+                    if len(flatten(inv)) == 1:
+                        invocations.extend(inv)
+                    else:
+                        invocations.append(inv)
         else:
-            invocations.append(self.body.get_method_invocations())
+            invocations.extend(self.body.get_method_invocations())
 
         return invocations
 
@@ -1142,7 +1157,7 @@ class Break(Statement):
         return None
 
     def get_method_invocations(self):
-        return None
+        return []
 
 
 class Return(Statement):
@@ -1226,20 +1241,6 @@ class Try(Statement):
         if self._finally:
             self._finally.accept(visitor)
 
-    def get_method_invocations(self):
-        inv = []
-        for statement in self.block:
-            inv.append(statement.get_method_invocations())
-
-        for catch in self.catches:
-            inv.append(catch.get_method_invocations())
-
-        if self._finally is not None:
-            for statement in self._finally:
-                inv.append(statement.get_method_invocation())
-
-        return inv
-
     def get_returns(self):
         returns = []
         for statement in self.block:
@@ -1251,13 +1252,13 @@ class Try(Statement):
 
         return returns
 
-    def get_method_invocations_per_branch(self):
+    def get_method_invocations(self):
         array = []
         block = []
 
         for statement in self.block:
             if type(statement) is IfThenElse:
-                block.append(statement.get_method_invocations_per_branch())
+                block.append(statement.get_method_invocations())
             else:
                 methods_in_statement = flatten(statement.get_method_invocations())
                 if len(methods_in_statement) > 0:
@@ -1306,7 +1307,7 @@ class Catch(SourceElement):
     def get_method_invocations(self):
         inv = []
         for statment in self.block:
-            inv.append(statment.get_method_invocations())
+            inv.extend(statment.get_method_invocations())
         return inv
 
     def get_returns(self):
@@ -1398,7 +1399,7 @@ class InstanceCreation(Expression):
         inv =  [MethodInvocation(self.type.name.value)]
         if self.arguments is not None:
             for arg in self.arguments:
-                inv.append(arg.get_method_invocations())
+                inv.extend(arg.get_method_invocations())
         return inv
 
 
@@ -1412,6 +1413,9 @@ class FieldAccess(Expression):
 
     def accept(self, visitor):
         visitor.visit_FieldAccess(self)
+
+    def get_method_invocations(self):
+        return []
 
 
 class ArrayAccess(Expression):
@@ -1443,7 +1447,7 @@ class ArrayCreation(Expression):
     def get_method_invocations(self):
         inv = []
         if self.initializer is not None:
-            inv.append(self.initializer.get_method_invocations())
+            inv.extend(self.initializer.get_method_invocations())
         return inv
 
     def accept(self, visitor):
