@@ -38,44 +38,45 @@ public class RecordBST
    
    public void place(ItemRecord node)
    {
-      if(this.root == null)
+      if(this.root.isNull())
       {
          root = node;
+         return;
       }
-      else
-      {
+      //else
+      //{
          ItemRecord p = root;
-         while(p != null)
+         while(!p.isNull())
          {
             //Node word is less than or equal to p word
             if(node.word.compareToIgnoreCase(p.word) < 0)
             {
-               if(p.left != null)
+               if(!p.left.isNull())
                {
-                  p = p.left;
+                  p = p.moveLeft();
                }
                else
                {
-                  p.left = node;
+                  p.updateLeft(node);
                   break;
                }
             }
             //Node word is greater than p word
             else
             {
-               if(p.right != null)
+               if(!p.right.isNull())
                {
-                  p = p.right;
+                  p = p.moveRight();
                }
                else
                {
-                  p.right = node;
+                  p.updateRight(node);
                   break;
                }
             }
          }
          
-   }
+      //}
    
-}  
-   }
+    }  
+}

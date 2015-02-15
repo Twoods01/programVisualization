@@ -69,7 +69,7 @@ class StaticGraph(graphInterface):
         print("")
 
     #Recursively chains branched_node_array together, returns the parents of the previous branch
-    def chain_nodes(self, branched_node_array, parent_nodes, x, y):
+    def chain_nodes(self, branched_node_array, parent_nodes, x, y, break_flag=False):
         if len(branched_node_array) == 0:
             return None
 
@@ -85,7 +85,6 @@ class StaticGraph(graphInterface):
             total_height = ((vertical_buffer + node_height) * number_of_branches)
 
             #For the first path in this branch, determine half of it's height
-
             half_height_cur_branch = ((self.count_branches(branched_node_array[0][0]) * (node_height + vertical_buffer)) / 2)
             #Increment Y by half the total height minus half the height of the first path
             y += (total_height / 2) - half_height_cur_branch
@@ -133,15 +132,22 @@ class StaticGraph(graphInterface):
             node = Node(branched_node_array[0], visible=visible)
             node.set_position(x, y)
 
+            parents = [node]
+
             if parent_nodes is not None:
+
+                if not break_flag:
+                    parents.extend(filter(lambda x: x.method.name == "Break", parent_nodes))
+
                 for parent in parent_nodes:
-                    parent.connect(node)
+                    if break_flag or parent.method.name != "Break":
+                        parent.connect(node)
 
             #Add the node to the node list
             self.nodes.append(node)
 
             #Recurse on remaining array
-            final_node = self.chain_nodes(branched_node_array[1:], [node], x + node_width + horizontal_buffer, y)
+            final_node = self.chain_nodes(branched_node_array[1:], parents, x + node_width + horizontal_buffer, y, break_flag=len(parents) > 1)
 
             #If the returned node was None, this node is the final in a branch, return it
             if final_node is None:

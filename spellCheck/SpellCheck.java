@@ -17,8 +17,6 @@ public class SpellCheck
     
    public static void main(String args[])
    {
-
-      
       try
       {
          File check = new File(args[0]);
@@ -46,27 +44,27 @@ public class SpellCheck
       ItemRecord p = tree.root;
       if(p.word.compareToIgnoreCase(node.word) == 0)
       {
-         p.tally++;
+         p.incTally();
          return;
       }
-      while(p != null)
+      while(!p.isNull())
       {
          if(p.word.compareToIgnoreCase(node.word) < 0)
          {
-            p = p.right;
+            p = p.moveRight();
          }
          else
          {
-            p = p.left;
+            p = p.moveLeft();
          }
-         if(p == null)
+         if(p.isNull())
          {
             notFound.place(node);
             return;
          }
          if(p.word.compareToIgnoreCase(node.word) == 0)
          {
-            p.tally++;
+            p.incTally();
             return;
          }
       }
@@ -81,7 +79,7 @@ public class SpellCheck
    
    private static void private_printFound(ItemRecord node)
    {
-      if(node != null)
+      if(!node.isNull())
       { 
          private_printFound(node.left);
          if(node.tally > 0)
@@ -96,7 +94,7 @@ public class SpellCheck
    
    public static void printNotFound()
    {
-      if(notFound.root != null)
+      if(!notFound.root.isNull())
       {
          private_printNotFound(notFound.root);
       }
@@ -104,7 +102,7 @@ public class SpellCheck
    
    private static void private_printNotFound(ItemRecord node)
    {
-      if(node != null)
+      if(!node.isNull())
       { 
          private_printNotFound(node.left);
          System.out.println(node.word  + " Possible spellings: " + spellCheck(node));      
@@ -114,28 +112,29 @@ public class SpellCheck
    
    private static boolean search(String word)
    {
-      if(tree.root == null)
+      if(tree.root.isNull())
       {
          return false;
       }
+
       ItemRecord p = tree.root;
       
       if(p.word.compareToIgnoreCase(word) == 0)
       {
          return true;
       }
-      while(p != null)
+      while(!p.isNull())
       {
          if(p.word.compareToIgnoreCase(word) < 0)
          {
-            p = p.right;
+            p = p.moveRight();
          }
          else
          {
-            p = p.left;
+            p = p.moveLeft();
          }
          
-         if(p == null)
+         if(p.isNull())
          {
             return false;
          }

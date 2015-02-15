@@ -636,8 +636,11 @@ class BinaryExpression(Expression):
 
     def get_method_invocations(self):
         invocations = []
-        invocations.extend(self.lhs.get_method_invocations())
-        invocations.extend(self.rhs.get_method_invocations())
+        print(self)
+        if not isinstance(self.lhs, basestring):
+            invocations.extend(self.lhs.get_method_invocations())
+        if not isinstance(self.rhs, basestring):
+            invocations.extend(self.rhs.get_method_invocations())
         return invocations
 
     def get_returns(self):
@@ -940,7 +943,7 @@ class While(Statement):
         return returns
 
     def get_method_invocations(self):
-        invocations = []
+        invocations = [MethodInvocation("loopStart")]
         inv_in_pred = flatten(self.predicate.get_method_invocations())
         if len(inv_in_pred) != 0:
             invocations.extend(inv_in_pred)
@@ -960,6 +963,8 @@ class While(Statement):
                 else:
                     invocations.append(inv)
 
+        invocations.append(MethodInvocation("repeat"))
+        invocations.append(MethodInvocation("loopEnd"))
         return invocations
 
 
@@ -1157,7 +1162,7 @@ class Break(Statement):
         return None
 
     def get_method_invocations(self):
-        return []
+        return [MethodInvocation("Break")]
 
 
 class Return(Statement):
