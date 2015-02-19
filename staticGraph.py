@@ -66,14 +66,11 @@ class StaticGraph(graphInterface):
         if self.frames_drawn == 2:
             self.needs_redraw = False
 
-        print("")
-
     #Recursively chains branched_node_array together, returns the parents of the previous branch
     def chain_nodes(self, branched_node_array, parent_nodes, x, y, break_flag=False):
         if len(branched_node_array) == 0:
             return None
 
-        self.print_nested(branched_node_array)
         #New branch
         if hasattr(branched_node_array[0], '__iter__'):
             #Store the Y position the branch starts at
@@ -91,7 +88,6 @@ class StaticGraph(graphInterface):
 
             #Find the longest path within this branch
             longest_array_length = self.longest_array(branched_node_array[0])
-            print(str(number_of_branches) + " branches longest is " + str(longest_array_length))
             new_parents = []
             i = 0
 

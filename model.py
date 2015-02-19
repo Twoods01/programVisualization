@@ -1,11 +1,46 @@
 def flatten(x):
     result = []
-    print(x)
     for el in x:
         if hasattr(el, "__iter__") and not isinstance(el, basestring):
             result.extend(flatten(el))
         else:
             result.append(el)
+    return result
+
+def is_nested(x):
+    for el in x:
+        if hasattr(el, "__iter__"):
+            return True
+
+    return False
+
+#Place the elements of new into arr preserving proper nesting
+def add_to_array_preserve_nesting(arr, new):
+    #Check if there were any method calls this statement
+    if len(new) > 0:
+
+        #If method calls were nested, preserve nesting
+        if is_nested(new):
+
+            for el in new:
+                if hasattr(el, "__iter__"):
+                    arr.append(el)
+                else:
+                    arr.extend([el])
+        #No nesting, flatten everything and extend
+        else:
+            arr.extend(flatten(new))
+
+def print_nested(nested_array):
+        print(build_simple_array(nested_array))
+
+def build_simple_array(nested_array):
+    result = []
+    for el in nested_array:
+        if hasattr(el, "__iter__") and not isinstance(el, basestring):
+            result.append(build_simple_array(el))
+        else:
+            result.append(el.name)
     return result
 
 # Base node
@@ -636,7 +671,6 @@ class BinaryExpression(Expression):
 
     def get_method_invocations(self):
         invocations = []
-        print(self)
         if not isinstance(self.lhs, basestring):
             invocations.extend(self.lhs.get_method_invocations())
         if not isinstance(self.rhs, basestring):
@@ -854,45 +888,48 @@ class IfThenElse(Statement):
 
         if type(self.if_true) is Block:
             for statement in self.if_true:
+
                 if type(statement) is IfThenElse:
-                    if len(block) == 0:
+                    method_in_pred = flatten(statement.predicate.get_method_invocations())
+                    if len(method_in_pred) != 0:
+                        block.extend(method_in_pred)
+                    elif len(block) == 0:
                         block.append(MethodInvocation("InvisibleNode"))
                     block.append(statement.get_method_invocations())
+
                 elif type(statement) is Return:
                     block.append(MethodInvocation("Return"))
                 else:
-                    methods_in_statement = flatten(statement.get_method_invocations())
-                    if len(methods_in_statement) > 0:
-                        block.extend(methods_in_statement)
+                    add_to_array_preserve_nesting(block, statement.get_method_invocations())
 
             if len(block) > 0:
                 array.append(block)
 
         else:
-            array.append(flatten(self.if_true.get_method_invocations()))
+            add_to_array_preserve_nesting(array, self.if_true.get_method_invocations())
 
         block = []
         if type(self.if_false) is Block:
             for statement in self.if_false:
+
                 if type(statement) is IfThenElse:
+                    method_in_pred = flatten(statement.predicate.get_method_invocations())
+                    if len(method_in_pred) != 0:
+                        block.extend(method_in_pred)
                     block.append(statement.get_method_invocations())
                 elif type(statement) is Return:
                     block.append(MethodInvocation("Return"))
                 else:
-                    print(statement)
-                    methods_in_statement = flatten(statement.get_method_invocations())
-                    if len(methods_in_statement) > 0:
-                        block.extend(methods_in_statement)
+                    add_to_array_preserve_nesting(block, statement.get_method_invocations())
+
 
             if len(block) > 0:
                 array.append(block)
 
-        elif type(self.if_false) is IfThenElse:
-            array.extend(self.if_false.get_method_invocations())
-        elif self.if_false is not None:
-            array.append(flatten(self.if_false.get_method_invocations()))
-        else:
+        elif self.if_false is None:
             array.append([MethodInvocation("InvisibleNode")])
+        else:
+            add_to_array_preserve_nesting(array, self.if_false.get_method_invocations())
 
         return array
 
@@ -944,9 +981,12 @@ class While(Statement):
 
     def get_method_invocations(self):
         invocations = [MethodInvocation("loopStart")]
+
+        inside_loop = []
         inv_in_pred = flatten(self.predicate.get_method_invocations())
         if len(inv_in_pred) != 0:
-            invocations.extend(inv_in_pred)
+            inside_loop.extend(inv_in_pred)
+
 
         for statement in self.body:
             inv = statement.get_method_invocations()
@@ -955,14 +995,16 @@ class While(Statement):
             if type(statement) is IfThenElse:
                 method_in_pred = flatten(statement.predicate.get_method_invocations())
                 if len(method_in_pred) != 0:
-                    invocations.extend(method_in_pred)
+                    inside_loop.extend(method_in_pred)
 
             if len(flatten(inv)) != 0:
-                if len(flatten(inv)) == 1:
-                    invocations.extend(inv)
+                if is_nested(inv):
+                    inside_loop.append(inv)
                 else:
-                    invocations.append(inv)
+                    inside_loop.extend(inv)
 
+
+        invocations.append([[MethodInvocation("InvisibleNode")], inside_loop])
         invocations.append(MethodInvocation("repeat"))
         invocations.append(MethodInvocation("loopEnd"))
         return invocations
@@ -1262,12 +1304,13 @@ class Try(Statement):
         block = []
 
         for statement in self.block:
-            if type(statement) is IfThenElse:
-                block.append(statement.get_method_invocations())
-            else:
-                methods_in_statement = flatten(statement.get_method_invocations())
-                if len(methods_in_statement) > 0:
-                    block.extend(methods_in_statement)
+            invs = statement.get_method_invocations()
+
+            for inv in invs:
+                if hasattr(inv, "__iter__"):
+                    block.append(inv)
+                else:
+                    block.extend([inv])
 
         array.append(block)
 
