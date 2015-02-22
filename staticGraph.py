@@ -63,6 +63,7 @@ class StaticGraph(graphInterface):
         pyglet.gl.glPopMatrix()
         self.stack.draw()
         self.frames_drawn += 1
+        print("")
         if self.frames_drawn == 2:
             self.needs_redraw = False
 

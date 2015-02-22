@@ -14,6 +14,13 @@ def is_nested(x):
 
     return False
 
+def all_nested(x):
+    for el in x:
+        if not hasattr(el, "__iter__"):
+            return False
+
+    return True
+
 #Place the elements of new into arr preserving proper nesting
 def add_to_array_preserve_nesting(arr, new):
     #Check if there were any method calls this statement
@@ -22,11 +29,15 @@ def add_to_array_preserve_nesting(arr, new):
         #If method calls were nested, preserve nesting
         if is_nested(new):
 
-            for el in new:
-                if hasattr(el, "__iter__"):
-                    arr.append(el)
-                else:
-                    arr.extend([el])
+            if all_nested(new):
+                arr.append(new)
+
+            else:
+                for el in new:
+                    if hasattr(el, "__iter__"):
+                        arr.append(el)
+                    else:
+                        arr.extend([el])
         #No nesting, flatten everything and extend
         else:
             arr.extend(flatten(new))
@@ -895,7 +906,8 @@ class IfThenElse(Statement):
                         block.extend(method_in_pred)
                     elif len(block) == 0:
                         block.append(MethodInvocation("InvisibleNode"))
-                    block.append(statement.get_method_invocations())
+
+                    add_to_array_preserve_nesting(block, statement.get_method_invocations())
 
                 elif type(statement) is Return:
                     block.append(MethodInvocation("Return"))
@@ -904,6 +916,8 @@ class IfThenElse(Statement):
 
             if len(block) > 0:
                 array.append(block)
+            else:
+                array.append([MethodInvocation("InvisibleNode")])
 
         else:
             add_to_array_preserve_nesting(array, self.if_true.get_method_invocations())
@@ -916,7 +930,11 @@ class IfThenElse(Statement):
                     method_in_pred = flatten(statement.predicate.get_method_invocations())
                     if len(method_in_pred) != 0:
                         block.extend(method_in_pred)
-                    block.append(statement.get_method_invocations())
+                    elif len(block) == 0:
+                        block.append(MethodInvocation("InvisibleNode"))
+
+                    add_to_array_preserve_nesting(block, statement.get_method_invocations())
+
                 elif type(statement) is Return:
                     block.append(MethodInvocation("Return"))
                 else:
@@ -925,9 +943,13 @@ class IfThenElse(Statement):
 
             if len(block) > 0:
                 array.append(block)
+            else:
+                array.append([MethodInvocation("InvisibleNode")])
+
 
         elif self.if_false is None:
-            array.append([MethodInvocation("InvisibleNode")])
+            if len(array) > 0:
+                array.append([MethodInvocation("InvisibleNode")])
         else:
             add_to_array_preserve_nesting(array, self.if_false.get_method_invocations())
 

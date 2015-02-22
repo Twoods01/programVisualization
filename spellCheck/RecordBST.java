@@ -43,22 +43,22 @@ public class RecordBST
          root = node;
          return;
       }
-      else
-      {
+      //else
+      //{
          ItemRecord p = root;
          while(!p.isNull())
          {
             //Node word is less than or equal to p word
             if(node.word.compareToIgnoreCase(p.word) < 0)
             {
-               if(p.left.isNull())
+               if(!p.left.isNull())
                {
-                  p.updateLeft(node);
-                  break;
+                  p = p.moveLeft();
                }
                else
                {
-                  p = p.moveLeft();
+                  p.updateLeft(node);
+                  break;
                }
             }
             //Node word is greater than p word
@@ -76,7 +76,7 @@ public class RecordBST
             }
          }
          
-      }
+      //}
    
     }  
 }
