@@ -782,12 +782,16 @@ class Cast(Expression):
     def to_string(self):
         return "(" + self.target.to_string() + ")" + self.expression.to_string()
 
+    def get_method_invocations(self):
+        return []
+
 
 class Statement(SourceElement):
     pass
 
 class Empty(Statement):
-    pass
+    def get_method_invocations(self):
+        return []
 
 
 class Block(Statement):
@@ -896,7 +900,6 @@ class IfThenElse(Statement):
     def get_method_invocations(self):
         array = []
         block = []
-
         if type(self.if_true) is Block:
             for statement in self.if_true:
 
@@ -907,7 +910,8 @@ class IfThenElse(Statement):
                     elif len(block) == 0:
                         block.append(MethodInvocation("InvisibleNode"))
 
-                    add_to_array_preserve_nesting(block, statement.get_method_invocations())
+                    invs = statement.get_method_invocations()
+                    add_to_array_preserve_nesting(block, invs)
 
                 elif type(statement) is Return:
                     block.append(MethodInvocation("Return"))
@@ -920,19 +924,38 @@ class IfThenElse(Statement):
                 array.append([MethodInvocation("InvisibleNode")])
 
         else:
-            add_to_array_preserve_nesting(array, self.if_true.get_method_invocations())
+            if type(self.if_true) is Return:
+                array.append([MethodInvocation("Return")])
+            else:
+                invs = self.if_true.get_method_invocations()
+                if len(invs) > 0:
+                    array.append(invs)
+                else:
+                    array.append([MethodInvocation("InvisibleNode")])
 
         block = []
-        if type(self.if_false) is Block:
-            for statement in self.if_false:
+        if type(self.if_false) is IfThenElse:
+            method_in_pred = flatten(self.if_false.predicate.get_method_invocations())
+            if len(method_in_pred) != 0:
+                block.extend(method_in_pred)
+            else:
+                block.append(MethodInvocation("InvisibleNode"))
 
-                if type(statement) is IfThenElse:
+            if len(block) > 0:
+                array.append(block)
+            else:
+                array.append([MethodInvocation("InvisibleNode")])
+
+            add_to_array_preserve_nesting(block, self.if_false.get_method_invocations())
+
+        elif type(self.if_false) is Block:
+            for statement in self.if_false:
+                if type(self.if_false) is IfThenElse:
                     method_in_pred = flatten(statement.predicate.get_method_invocations())
                     if len(method_in_pred) != 0:
                         block.extend(method_in_pred)
                     elif len(block) == 0:
                         block.append(MethodInvocation("InvisibleNode"))
-
                     add_to_array_preserve_nesting(block, statement.get_method_invocations())
 
                 elif type(statement) is Return:
@@ -946,12 +969,16 @@ class IfThenElse(Statement):
             else:
                 array.append([MethodInvocation("InvisibleNode")])
 
-
         elif self.if_false is None:
             if len(array) > 0:
                 array.append([MethodInvocation("InvisibleNode")])
         else:
-            add_to_array_preserve_nesting(array, self.if_false.get_method_invocations())
+            #add_to_array_preserve_nesting(array, self.if_false.get_method_invocations())
+            invs = self.if_false.get_method_invocations()
+            if len(invs) > 0:
+                array.append(invs)
+            else:
+                array.append([MethodInvocation("InvisibleNode")])
 
         return array
 
@@ -1009,26 +1036,32 @@ class While(Statement):
         if len(inv_in_pred) != 0:
             inside_loop.extend(inv_in_pred)
 
+        if type(self.body) is Block:
+            for statement in self.body:
+                inv = statement.get_method_invocations()
 
-        for statement in self.body:
-            inv = statement.get_method_invocations()
+                #Have to check predicate for method call here otherwise array structure gets ruined
+                if type(statement) is IfThenElse:
+                    method_in_pred = flatten(statement.predicate.get_method_invocations())
+                    if len(method_in_pred) != 0:
+                        inside_loop.extend(method_in_pred)
 
+                add_to_array_preserve_nesting(inside_loop, inv)
+        else:
             #Have to check predicate for method call here otherwise array structure gets ruined
-            if type(statement) is IfThenElse:
-                method_in_pred = flatten(statement.predicate.get_method_invocations())
+            if type(self.body) is IfThenElse:
+                method_in_pred = flatten(self.body.predicate.get_method_invocations())
                 if len(method_in_pred) != 0:
                     inside_loop.extend(method_in_pred)
 
-            if len(flatten(inv)) != 0:
-                if is_nested(inv):
-                    inside_loop.append(inv)
-                else:
-                    inside_loop.extend(inv)
+            #inside_loop.extend(self.body.get_method_invocations())
+            add_to_array_preserve_nesting(inside_loop, self.body.get_method_invocations())
 
 
         invocations.append([[MethodInvocation("InvisibleNode")], inside_loop])
         invocations.append(MethodInvocation("repeat"))
         invocations.append(MethodInvocation("loopEnd"))
+
         return invocations
 
 
@@ -1057,11 +1090,13 @@ class For(Statement):
         return string + "}"
 
     def get_method_invocations(self):
-        invocations = []
-        invocations.extend(self.init.get_method_invocations())
-        invocations.extend(self.predicate.get_method_invocations())
+        invocations = [MethodInvocation("loopStart")]
+
+        inside_loop = []
+        inside_loop.extend(self.init.get_method_invocations())
+        inside_loop.extend(self.predicate.get_method_invocations())
         for update in self.update:
-            invocations.extend(update.get_method_invocations())
+            inside_loop.extend(update.get_method_invocations())
 
         if type(self.body) is Block:
             for statement in self.body:
@@ -1071,16 +1106,22 @@ class For(Statement):
                 if type(statement) is IfThenElse:
                     method_in_pred = flatten(statement.predicate.get_method_invocations())
                     if len(method_in_pred) != 0:
-                        invocations.extend(method_in_pred)
+                        inside_loop.extend(method_in_pred)
 
-                if len(flatten(inv)) != 0:
-                    if len(flatten(inv)) == 1:
-                        invocations.extend(inv)
-                    else:
-                        invocations.append(inv)
+                add_to_array_preserve_nesting(inside_loop, inv)
         else:
-            invocations.extend(self.body.get_method_invocations())
+            #Have to check predicate for method call here otherwise array structure gets ruined
+            if type(self.body) is IfThenElse:
+                method_in_pred = flatten(self.body.predicate.get_method_invocations())
+                if len(method_in_pred) != 0:
+                    inside_loop.extend(method_in_pred)
 
+            #inside_loop.extend(self.body.get_method_invocations())
+            add_to_array_preserve_nesting(inside_loop, self.body.get_method_invocations())
+
+        invocations.append([[MethodInvocation("InvisibleNode")], inside_loop])
+        invocations.append(MethodInvocation("repeat"))
+        invocations.append(MethodInvocation("loopEnd"))
         return invocations
 
     def get_returns(self):
@@ -1343,7 +1384,10 @@ class Try(Statement):
             if len(methods_in_statement) > 0:
                 block.extend(methods_in_statement)
 
-        array.append(block)
+        if len(block) > 0:
+            array.append(block)
+        else:
+            array.append([MethodInvocation("InvisibleNode")])
 
         return array
 

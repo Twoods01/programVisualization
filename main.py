@@ -21,7 +21,7 @@ def main(argv):
         print("main.py -d <directory>")
         sys.exit(2)
 
-    directory = "spellCheck"
+    directory = "s9"
     visualization = StaticGraph
     timeout = None
     processing = True

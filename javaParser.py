@@ -10,6 +10,7 @@ import os
 from os import walk
 import cStringIO
 import threading
+import arrayUtils
 
 def flatten(x):
     result = []
@@ -252,15 +253,15 @@ class Javap:
             if inv.name in map(lambda x: x.name, methods) or inv.name == "main":
                 array.append(inv)
 
-        array = invocations
         #User defined functions are contained in array in the order they appear in the code
         # create a nested array to represent code branches
         branch_array = [m.MethodInvocation("Start")]
         for statement in method.body:
+
+            if type(statement) is m.For:
+                print("For loop statement " + str(statement))
+
             methods_this_statement = statement.get_method_invocations()
-            #Get the intersection between user defined method invocations and method invocations this statement
-            # if its not empty add stuff to branch_array
-            user_methods_this_statement = set(flatten(methods_this_statement)) & set(array)
 
             #Have to check predicate for method call here otherwise array structure gets ruined
             if type(statement) is m.IfThenElse:
@@ -277,11 +278,35 @@ class Javap:
             if type(statement) is m.Return:
                 branch_array.append(m.MethodInvocation("Return"))
 
+        #Make sure we have a return at the end of the method
         try:
             if branch_array[-1].name != "Return":
                 branch_array.append(m.MethodInvocation("Return"))
         except AttributeError, IndexError:
             branch_array.append(m.MethodInvocation("Return"))
+
+        self.separate_subsequent_branches(branch_array)
+        return branch_array
+
+
+    #Check the array to ensure there is no situation with 2 subsequent branches with no method calls between them
+    # if there are, add an invisible node between
+    def separate_subsequent_branches(self, branch_array):
+        if not hasattr(branch_array, '__iter__'):
+            return branch_array
+
+        for i in range(0, len(branch_array)):
+
+            if hasattr(branch_array[i], "__iter__"):
+                for el in branch_array[i]:
+                    if hasattr(el, "__iter__"):
+                        for branch in el:
+                            if hasattr(branch, "__iter__"):
+                                self.separate_subsequent_branches(branch)
+
+                if i < len(branch_array) - 1 and hasattr(branch_array[i + 1], "__iter__"):
+                    if hasattr(branch_array[i][0], "__iter__") and hasattr(branch_array[i + 1][0], "__iter__"):
+                        branch_array.insert(i + 1, m.MethodInvocation("InvisibleNode"))
 
         return branch_array
 

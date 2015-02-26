@@ -2,6 +2,7 @@
 class test {
     public static void main(String[] args) {
         branchTesting();
+        nestedLoop();
         String numString = recursiveString(5);
         System.out.println(numString);
         int num = addNumbersInString(numString);
@@ -9,30 +10,32 @@ class test {
         nothing();
     }
 
+    public static void nestedLoop(){
+        int i = 0;
+        int j = 0;
+        while(i < 10){
+            One();
+            while(j < 10){
+                Two();
+                j++;
+            }
+            i++;
+        }
+    }
+
     public static void branchTesting(){
         Start();
-        if(true){
+        if(One()){
             //Start();
             if(true){
-                One();
+                Three();
                 return;
             }
-            else if(true){
-                Two();
-            }
-            else if(true){
-                //Start();
-                if(true){Three();}
-                else{
-                    Four();
-                    return;
-                }
-            }
 
-            Five();
+            Four();
         }
-        else if(true){
-            Start();
+        else if(Two()){
+            //Five();
             if(true){
                 //Start();
                 if(true){Six();}
@@ -51,8 +54,8 @@ class test {
 
     public static void Start(){return;}
     public static void End(){return;}
-    public static void One(){return;}
-    public static void Two(){return;}
+    public static boolean One(){return true;}
+    public static boolean Two(){return true;}
     public static void Three(){return;}
     public static void Four(){return;}
     public static void Five(){return;}
