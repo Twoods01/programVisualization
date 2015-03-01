@@ -76,11 +76,7 @@ class Node:
 
     #Connect current node to |node|
     def connect(self, node):
-        line_width = 4#self.visit_count[node] * 2
-        if line_width > 20:
-            line_width = 20
-        pyglet.graphics.draw(4, pyglet.gl.GL_QUADS,
-                            ('v2i', (self.x + (node_width / 2) - (line_width / 2), self.y + (node_height / 2) - (line_width / 2),
-                                     node.x + (node_width / 2) - (line_width / 2), node.y + (node_height / 2) - (line_width / 2),
-                                     node.x + (node_width / 2) + (line_width / 2), node.y + (node_height / 2) + (line_width / 2),
-                                     self.x + (node_width / 2) + (line_width / 2), self.y + (node_height / 2) + (line_width / 2))))
+        pyglet.gl.glLineWidth(3)
+        pyglet.graphics.draw(2, pyglet.gl.GL_LINES,
+                            ('v2i', (self.x + (node_width / 2), self.y + (node_height / 2),
+                                     node.x + (node_width / 2), node.y + (node_height / 2))))

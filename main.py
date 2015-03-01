@@ -21,7 +21,7 @@ def main(argv):
         print("main.py -d <directory>")
         sys.exit(2)
 
-    directory = "s9"
+    directory = "program"
     visualization = StaticGraph
     timeout = None
     processing = True

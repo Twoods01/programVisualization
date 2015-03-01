@@ -6,6 +6,7 @@ from graphInterface import *
 from model import MethodDeclaration, MethodInvocation
 from stack import *
 from javaParser import flatten
+import arrayUtils
 
 
 standard_color = (158, 136, 124)
@@ -71,7 +72,7 @@ class StaticGraph(graphInterface):
     def chain_nodes(self, branched_node_array, parent_nodes, x, y, break_flag=False):
         if len(branched_node_array) == 0:
             return None
-
+        #arrayUtils.print_nested(branched_node_array)
         #New branch
         if hasattr(branched_node_array[0], '__iter__'):
             #Store the Y position the branch starts at
@@ -138,6 +139,7 @@ class StaticGraph(graphInterface):
 
                 for parent in parent_nodes:
                     if break_flag or parent.method.name != "Break":
+                        print("Connecting " + parent.method.name + " to " + node.method.name)
                         parent.connect(node)
 
             #Add the node to the node list
@@ -198,19 +200,6 @@ class StaticGraph(graphInterface):
             branches += 1
 
         return branches
-
-    def print_nested(self, nested_array):
-        simple_array = self.build_simple_array(nested_array)
-        print(simple_array)
-
-    def build_simple_array(self, nested_array):
-        result = []
-        for el in nested_array:
-            if hasattr(el, "__iter__") and not isinstance(el, basestring):
-                result.append(self.build_simple_array(el))
-            else:
-                result.append(el.name)
-        return result
 
     def redraw(self):
         self.needs_redraw = True

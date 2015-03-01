@@ -950,8 +950,10 @@ class IfThenElse(Statement):
 
         elif type(self.if_false) is Block:
             for statement in self.if_false:
-                if type(self.if_false) is IfThenElse:
+                print(statement)
+                if type(statement) is IfThenElse:
                     method_in_pred = flatten(statement.predicate.get_method_invocations())
+                    print("False preds " + str(method_in_pred))
                     if len(method_in_pred) != 0:
                         block.extend(method_in_pred)
                     elif len(block) == 0:

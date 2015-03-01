@@ -1,6 +1,7 @@
 
 class test {
     public static void main(String[] args) {
+        find("Hi");
         branchTesting();
         nestedLoop();
         String numString = recursiveString(5);
@@ -8,6 +9,28 @@ class test {
         int num = addNumbersInString(numString);
         System.out.println(num);
         nothing();
+    }
+
+    // see if the string exists in the tree
+    public boolean find(String s) {
+        if (root == null) {
+            return false;
+        }
+        Node p = root;
+        while (p != null) {
+        if (s.compareToIgnoreCase(p.record.getWord())==0){
+        p.record.tally();
+        return true;
+        }
+            else{
+        if(s.compareToIgnoreCase(p.record.getWord())<0){
+            p = p.left;
+        }else{
+            p = p.right;
+        }
+        }
+        }
+        return false;
     }
 
     public static void nestedLoop(){
@@ -24,39 +47,48 @@ class test {
     }
 
     public static void branchTesting(){
-        Start();
-        if(One()){
-            //Start();
-            if(true){
-                Three();
-                return;
+        int strLength = 1;
+        if (true)
+        {
+            return ;
+        }
+
+        else
+        {
+
+            if (Three() > 1 && One())
+            {
+                Four();
+                if (true)
+                    return;
+                else if (Two())
+                {
+
+                    Five();
+                    if (true)
+                        return ;
+
+                }
+
+            }
+            if (1 > 3 && One()
+                    && Two())
+            {
+                Six();
+                if (true)
+                    return;
+
             }
 
-            Four();
+
         }
-        else if(Two()){
-            //Five();
-            if(true){
-                //Start();
-                if(true){Six();}
-                else{Seven();}
-            }
-            else{Eight();}
-            
-        }
-        else{
-            //Start();
-            if(true){Nine();}
-            else{Ten();}
-        }
-        End();
     }
 
     public static void Start(){return;}
     public static void End(){return;}
     public static boolean One(){return true;}
     public static boolean Two(){return true;}
-    public static void Three(){return;}
+    public static int Three(){return 1;}
     public static void Four(){return;}
     public static void Five(){return;}
     public static void Six(){return;}
