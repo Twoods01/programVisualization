@@ -37,7 +37,7 @@ def main(argv):
         print("main.py -d <directory>")
         sys.exit(2)
 
-    window = pyglet.window.Window(1050, 700)
+    window = pyglet.window.Window(1200, 700)
     parsed = Javap(directory)
     global graph
     if visualization.isDynamic:

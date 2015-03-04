@@ -1,7 +1,7 @@
 
 class test {
     public static void main(String[] args) {
-        find("Hi");
+        insert("Hi", "There");
         branchTesting();
         nestedLoop();
         String numString = recursiveString(5);
@@ -11,26 +11,13 @@ class test {
         nothing();
     }
 
-    // see if the string exists in the tree
-    public boolean find(String s) {
-        if (root == null) {
-            return false;
-        }
-        Node p = root;
-        while (p != null) {
-        if (s.compareToIgnoreCase(p.record.getWord())==0){
-        p.record.tally();
-        return true;
-        }
-            else{
-        if(s.compareToIgnoreCase(p.record.getWord())<0){
-            p = p.left;
-        }else{
-            p = p.right;
-        }
-        }
-        }
-        return false;
+    public void insert(ItemRecord root, ItemRecord data){
+        if (!root) 
+            root = data;
+        else if (root.word.compareToIgnoreCase(data.word) < 0)
+            insert(root.left, data);
+        else if (root.word.compareToIgnoreCase(data.word) > 0)
+            insert(root.right, data);
     }
 
     public static void nestedLoop(){
@@ -84,7 +71,7 @@ class test {
         }
     }
 
-    public static void Start(){return;}
+    //public static void Start(){return;}
     public static void End(){return;}
     public static boolean One(){return true;}
     public static boolean Two(){return true;}

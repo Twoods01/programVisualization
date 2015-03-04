@@ -43,8 +43,8 @@ public class RecordBST
          root = node;
          return;
       }
-      //else
-      //{
+      else
+      {
          ItemRecord p = root;
          while(!p.isNull())
          {
@@ -76,7 +76,7 @@ public class RecordBST
             }
          }
          
-      //}
+      }
    
     }  
 }

@@ -72,7 +72,7 @@ class StaticGraph(graphInterface):
     def chain_nodes(self, branched_node_array, parent_nodes, x, y, break_flag=False):
         if len(branched_node_array) == 0:
             return None
-        #arrayUtils.print_nested(branched_node_array)
+        arrayUtils.print_nested(branched_node_array)
         #New branch
         if hasattr(branched_node_array[0], '__iter__'):
             #Store the Y position the branch starts at
@@ -139,7 +139,6 @@ class StaticGraph(graphInterface):
 
                 for parent in parent_nodes:
                     if break_flag or parent.method.name != "Break":
-                        print("Connecting " + parent.method.name + " to " + node.method.name)
                         parent.connect(node)
 
             #Add the node to the node list

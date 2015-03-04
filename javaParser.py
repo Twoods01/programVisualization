@@ -264,8 +264,8 @@ class Javap:
             methods_this_statement = statement.get_method_invocations()
 
             #Have to check predicate for method call here otherwise array structure gets ruined
-            if type(statement) is m.IfThenElse:
-                method_in_pred = flatten(statement.predicate.get_method_invocations())
+            if m.is_branch(statement):
+                method_in_pred = flatten(statement.get_predicate().get_method_invocations())
                 if len(method_in_pred) != 0:
                     branch_array.extend(method_in_pred)
 
