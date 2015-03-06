@@ -32,27 +32,19 @@ class StaticGraph(graphInterface):
         self.needs_redraw = True
         self.frames_drawn = 0
 
-        self.center_x = 0
-        self.center_y = 0
         self.zoom = 1
+
+        self.place_nodes(window)
 
     def draw(self, window):
         if not self.needs_redraw:
             return
 
         pyglet.gl.glPushMatrix()
-        #Translate to center of window to scale without moving nodes then translate back
-        pyglet.gl.glTranslatef(window.width / 2 + node_width / 2, window.height / 2 + node_height / 2, 0)
         pyglet.gl.glScalef(self.zoom, self.zoom, self.zoom)
-        pyglet.gl.glTranslatef(-(window.width / 2 + node_width / 2), -(window.height / 2 + node_height / 2), 0)
-        #Translate by current center position
-        pyglet.gl.glTranslatef(self.center_x, self.center_y, 0)
 
-        self.nodes = []
-
-        x = 25
-        y = window.height / 2
-        self.chain_nodes(self.parsed.get_method_invocations_in_method(self.current.method), None, x, y)
+        for node in self.nodes:
+            node.connect()
 
         for node in self.nodes:
             if node.method.name in map(lambda x: x.name, self.methods):
@@ -62,17 +54,27 @@ class StaticGraph(graphInterface):
 
 
         pyglet.gl.glPopMatrix()
-        self.stack.draw()
+
         self.frames_drawn += 1
 
         if self.frames_drawn == 2:
             self.needs_redraw = False
 
+    def draw_UI(self, window):
+        self.stack.draw()
+
+    def place_nodes(self, window):
+        self.nodes = []
+
+        x = 75
+        y = window.height / 2
+        self.chain_nodes(self.parsed.get_method_invocations_in_method(self.current.method), None, x, y)
+
     #Recursively chains branched_node_array together, returns the parents of the previous branch
     def chain_nodes(self, branched_node_array, parent_nodes, x, y, break_flag=False):
         if len(branched_node_array) == 0:
             return None
-        arrayUtils.print_nested(branched_node_array)
+
         #New branch
         if hasattr(branched_node_array[0], '__iter__'):
             #Store the Y position the branch starts at
@@ -139,7 +141,7 @@ class StaticGraph(graphInterface):
 
                 for parent in parent_nodes:
                     if break_flag or parent.method.name != "Break":
-                        parent.connect(node)
+                        node.add_parent(parent)
 
             #Add the node to the node list
             self.nodes.append(node)
@@ -153,7 +155,6 @@ class StaticGraph(graphInterface):
             #Else final node has already been found, pass it along
             else:
                 return [final_node]
-
 
     #Returns the length of the longest array found within |nested_array|
     def longest_array(self, nested_array):
@@ -205,27 +206,20 @@ class StaticGraph(graphInterface):
         self.frames_drawn = 0
 
     def reset(self):
-        self.center_x = 0
-        self.center_y = 0
         self.zoom = 1
 
-    def handle_input(self, x, y):
-        #Offset x and y by center
-        #new_x = x * self.zoom
-        new_x = x - self.center_x
-
-        #new_y = y * self.zoom
-        new_y = y - self.center_y
-
+    def handle_input(self, x, y, cam, window):
 
         for node in self.nodes:
-            if node.hit(new_x, new_y):
+            if node.hit(x, y, cam.x, cam.y):
                 method = filter(lambda x: x.name == node.method.name, self.methods)
                 if len(method) > 0:
                     self.current = Node(method[0])
                     self.stack.append(self.current)
                     self.redraw()
                     self.reset()
+                    cam.reset()
+                    self.place_nodes(window)
                 return
 
         node = self.stack.get_clicked_item(x, y)
@@ -234,4 +228,6 @@ class StaticGraph(graphInterface):
             self.current = node
             self.stack.pop_to(node)
             self.redraw()
-            self.reset
+            self.reset()
+            cam.reset()
+            self.place_nodes(window)

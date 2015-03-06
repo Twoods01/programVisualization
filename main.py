@@ -1,8 +1,8 @@
 __author__ = 'twoods0129'
 from javaParser import *
-from dynamicGraph import *
 from staticGraph import *
 import pyglet, sys, getopt
+import camera
 
 control_color = (150, 150, 150)
 progress_bar_color = (45, 45, 45)
@@ -21,7 +21,7 @@ def main(argv):
         print("main.py -d <directory>")
         sys.exit(2)
 
-    directory = "program"
+    directory = "s1"
     visualization = StaticGraph
     timeout = None
     processing = True
@@ -38,6 +38,8 @@ def main(argv):
         sys.exit(2)
 
     window = pyglet.window.Window(1200, 700)
+    cam = camera.Camera(window.width, window.height)
+
     parsed = Javap(directory)
     global graph
     if visualization.isDynamic:
@@ -54,11 +56,13 @@ def main(argv):
     def on_draw():
          if graph.needs_redraw:
             window.clear()
+            cam.standard_projection()
             graph.draw(window)
+            cam.hud_projection()
+            graph.draw_UI(window)
             if visualization.isDynamic:
                 draw_UI(window)
             #fps_display.draw()
-
 
 
     @window.event
@@ -76,7 +80,7 @@ def main(argv):
                     animation_playing = False
                     graph.step_backward()
             else:
-                graph.handle_input(x, y)
+                graph.handle_input(x, y, cam, window)
 
 
     @window.event
@@ -86,25 +90,27 @@ def main(argv):
         elif symbol == pyglet.window.key.RIGHT:
             graph.step_forward()
         elif symbol == pyglet.window.key.UP:
-            graph.zoom += .1
+            #graph.zoom += .1
+            cam.z += .1
             graph.redraw()
         elif symbol == pyglet.window.key.DOWN:
+            cam.z -= .1
             if graph.zoom > 0.2:
-                graph.zoom -= .1
+                #graph.zoom -= .1
                 graph.redraw()
         elif symbol == pyglet.window.key.F:
             graph.build_final()
         elif symbol == pyglet.window.key.W:
-            graph.center_y -= 50
+            cam.y += 50
             graph.redraw()
         elif symbol == pyglet.window.key.S:
-            graph.center_y += 50
+            cam.y -= 50
             graph.redraw()
         elif symbol == pyglet.window.key.A:
-            graph.center_x += 50
+            cam.x -= 50
             graph.redraw()
         elif symbol == pyglet.window.key.D:
-            graph.center_x -= 50
+            cam.x += 50
             graph.redraw()
 
     @window.event

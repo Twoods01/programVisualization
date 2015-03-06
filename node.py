@@ -6,7 +6,11 @@ import vectorMath as vm
 
 init_radius = 150
 node_height = 70
-node_width = 115
+node_width = 114
+x_offset = node_width / 2
+y_offset = node_height / 2
+
+node_vertices = {}
 
 class Node:
     #Construct a new Node given a MethodDeclaration which it represents, and a parent if it has one
@@ -28,6 +32,9 @@ class Node:
         self.radius = init_radius
         self.visible = visible
 
+    def add_parent(self, parent):
+        self.parents.append(parent)
+
     #Print for debugging
     def write(self):
         print(self.method.name)
@@ -44,22 +51,30 @@ class Node:
         if not self.visible:
             return
 
-        #Draw the method as a box
-        pyglet.graphics.draw_indexed(4, pyglet.gl.GL_TRIANGLES,
+        pyglet.gl.glPushMatrix()
+        pyglet.gl.glTranslatef(self.x, self.y, 0)
+
+        #Check if we've drawn a node of this color before, if not create a vertex list for it
+        if not color in node_vertices:
+            node_vertices[color] = pyglet.graphics.vertex_list_indexed(4,
                                     [0, 1, 2, 0, 2, 3],
-                                    ('v2i', (self.x, self.y,
-                                            self.x + node_width, self.y,
-                                            self.x + node_width, self.y + node_height,
-                                            self.x, self.y + node_height)),
+                                    ('v3i', (-57, -35, 0,
+                                            57, -35, 0,
+                                            57, 35, 0,
+                                            -57, 35, 0)),
                                     ('c3B', (color[0], color[1], color[2]) * 4))
+        node_vertices[color].draw(pyglet.gl.GL_TRIANGLES)
+
         #Label it with method name
         pyglet.text.Label(self.method.name + "()",
                           font_name='Times New Roman',
                           font_size=12,
-                          x = self.x + (node_width / 2),
-                          y = self.y + (node_height / 2),
+                          x = 0,
+                          y = 0,
                           anchor_y = 'center',
                           anchor_x= 'center').draw()
+
+        pyglet.gl.glPopMatrix()
 
     #Returns true if this node has been given a location, otherwise false
     def placed(self):
@@ -70,13 +85,14 @@ class Node:
         return vm.normalize(map(op.sub, (node.x, node.y), (self.x, self.y)))
 
     #Given x, y coordinate determine if that coordinate is inside the node
-    def hit(self, x, y):
-        return x > self.x  and x < self.x + node_width and y > self.y and y < self.y + node_height
-
+    def hit(self, x, y, camx, camy):
+        return x > self.x - camx - x_offset  and x < self.x + node_width - camx - x_offset\
+               and y > self.y - camy - y_offset and y < self.y + node_height - camy - y_offset
 
     #Connect current node to |node|
-    def connect(self, node):
+    def connect(self):
         pyglet.gl.glLineWidth(3)
-        pyglet.graphics.draw(2, pyglet.gl.GL_LINES,
-                            ('v2i', (self.x + (node_width / 2), self.y + (node_height / 2),
-                                     node.x + (node_width / 2), node.y + (node_height / 2))))
+        for p in self.parents:
+            pyglet.graphics.draw(2, pyglet.gl.GL_LINES,
+                                ('v2i', (self.x, self.y,
+                                         p.x, p.y)))
