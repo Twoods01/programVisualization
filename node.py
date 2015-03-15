@@ -84,7 +84,7 @@ class Node:
     def get_direction(self, node):
         return vm.normalize(map(op.sub, (node.x, node.y), (self.x, self.y)))
 
-    #Given x, y coordinate determine if that coordinate is inside the node
+    #Given x, y coordinate and current camera position determine if that coordinate is inside the node
     def hit(self, x, y, camx, camy):
         return x > self.x - camx - x_offset  and x < self.x + node_width - camx - x_offset\
                and y > self.y - camy - y_offset and y < self.y + node_height - camy - y_offset

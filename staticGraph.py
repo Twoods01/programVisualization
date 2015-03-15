@@ -5,7 +5,7 @@ from pyglet.gl import *
 from graphInterface import *
 from model import MethodDeclaration, MethodInvocation
 from stack import *
-from javaParser import flatten
+import dataView as dv
 import arrayUtils
 
 
@@ -29,19 +29,18 @@ class StaticGraph(graphInterface):
         self.current = Node(specical_start_node)
         #Array of nodes for methods within current
         self.nodes = []
+        self.data = dv.DataView(parsed)
         self.needs_redraw = True
         self.frames_drawn = 0
 
-        self.zoom = 1
+        #Invisible node which we can place underneath data to connect them to other methods
+        self.invis_node = None
 
         self.place_nodes(window)
 
     def draw(self, window):
         if not self.needs_redraw:
             return
-
-        pyglet.gl.glPushMatrix()
-        pyglet.gl.glScalef(self.zoom, self.zoom, self.zoom)
 
         for node in self.nodes:
             node.connect()
@@ -52,8 +51,8 @@ class StaticGraph(graphInterface):
             else:
                 node.draw(library_method_color)
 
-
-        pyglet.gl.glPopMatrix()
+        if self.invis_node:
+            self.invis_node.connect()
 
         self.frames_drawn += 1
 
@@ -62,6 +61,7 @@ class StaticGraph(graphInterface):
 
     def draw_UI(self, window):
         self.stack.draw()
+        self.data.draw(window)
 
     def place_nodes(self, window):
         self.nodes = []
@@ -100,7 +100,7 @@ class StaticGraph(graphInterface):
                 #Recurse on the path, store the returned final_node and add it to our new parent set
                 final_nodes_in_branch = self.chain_nodes(branch, parent_nodes, x, y)
                 #Filter out nodes with method name Return, as this stops execution
-                new_parents.extend(filter(lambda x: x.method.name != "Return", flatten(final_nodes_in_branch)))
+                new_parents.extend(filter(lambda x: x.method.name != "Return", arrayUtils.flatten(final_nodes_in_branch)))
 
                 #Calculate half of the height of this path and the next path if there is one
                 half_height_this_branch = (((self.count_branches(branch) + 1) * (node_height + vertical_buffer)) / 2)
@@ -205,8 +205,34 @@ class StaticGraph(graphInterface):
         self.needs_redraw = True
         self.frames_drawn = 0
 
-    def reset(self):
-        self.zoom = 1
+    #Need to handle cam zoom somehow
+    def handle_mouse(self, x, y, cam):
+        self.invis_node = None
+        inside_node = False
+        for node in self.nodes:
+            if node.hit(x, y, cam.x, cam.y):
+                inside_node = True
+                fields = self.parsed.get_fields_in_method(node.method)
+                self.data.highlight(fields)
+                self.redraw()
+                break
+
+        if not inside_node:
+            obj = self.data.hit(x, y)
+            if obj:
+                inside_node = True
+                self.invis_node = Node(MethodInvocation("InvisibleNode"), visible=False)
+                self.invis_node.set_position(obj.x + cam.x, obj.y + cam.y)
+
+                for node in self.nodes:
+                    fields = self.parsed.get_fields_in_method(node.method)
+                    for field in fields:
+                        if obj.includes(field):
+                            self.invis_node.add_parent(node)
+
+                self.redraw()
+
+        return inside_node
 
     def handle_input(self, x, y, cam, window):
 
@@ -215,9 +241,9 @@ class StaticGraph(graphInterface):
                 method = filter(lambda x: x.name == node.method.name, self.methods)
                 if len(method) > 0:
                     self.current = Node(method[0])
+                    self.data.add_params(method[0].parameters)
                     self.stack.append(self.current)
                     self.redraw()
-                    self.reset()
                     cam.reset()
                     self.place_nodes(window)
                 return
@@ -227,7 +253,7 @@ class StaticGraph(graphInterface):
         if node is not None:
             self.current = node
             self.stack.pop_to(node)
+            self.data.add_params(node.method.parameters)
             self.redraw()
-            self.reset()
             cam.reset()
             self.place_nodes(window)

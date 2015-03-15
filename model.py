@@ -628,6 +628,13 @@ class BinaryExpression(Expression):
             if type(self.rhs) is not str:
                 self.rhs.accept(visitor)
 
+    def get_args(self):
+        args = []
+        args.append(self.lhs.get_args())
+        args.append(self.rhs.get_args())
+        return au.flatten(args)
+
+
     def to_string(self):
         return self.lhs.to_string() + " " + self.operator + " " + self.rhs.to_string()
 
@@ -823,6 +830,14 @@ class MethodInvocation(Expression):
         invocations.extend([self])
 
         return invocations
+
+    def get_args(self):
+        args = []
+        args.append(self.target.get_args())
+        for arg in self.arguments:
+            args.append(arg.get_args())
+
+        return au.flatten(args)
 
     def get_returns(self):
         return None
@@ -1502,6 +1517,7 @@ class InstanceCreation(Expression):
         self.arguments = arguments
         self.body = body
         self.enclosed_in = enclosed_in
+        self.name = self.type.name.value
 
     def accept(self, visitor):
         visitor.visit_InstanceCreation(self)
@@ -1511,13 +1527,22 @@ class InstanceCreation(Expression):
         string += ", ".join([arg if type(arg) is str else arg.to_string() for arg in self.arguments]) + ")"
         return string
 
+    def get_args(self):
+        args = []
+
+        for arg in self.arguments:
+            a = arg.get_args()
+            args.append(a)
+        return args
+
     def get_method_invocations(self):
         inv =  []
         if self.arguments is not None:
             for arg in self.arguments:
                 inv.extend(arg.get_method_invocations())
 
-        inv.extend([MethodInvocation(self.type.name.value)])
+        #inv.extend([MethodInvocation(self.type.name.value)])
+        inv.extend([self])
         return inv
 
 
@@ -1546,6 +1571,9 @@ class ArrayAccess(Expression):
 
     def accept(self, visitor):
         visitor.visit_ArrayAccess(self)
+
+    def get_args(self):
+        return self.target.value
 
     def get_method_invocations(self):
         return self.index.get_method_invocations()
@@ -1581,6 +1609,9 @@ class Literal(SourceElement):
 
     def get_method_invocations(self):
         return []
+
+    def get_args(self):
+        return self.value
 
     def get_returns(self):
         return None
@@ -1618,6 +1649,9 @@ class Name(SourceElement):
 
     def accept(self, visitor):
         visitor.visit_Name(self)
+
+    def get_args(self):
+        return self.value
 
     def to_string(self):
         return self.value

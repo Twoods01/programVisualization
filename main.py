@@ -10,6 +10,8 @@ control_height = 30
 progress_bar_offset = 40
 animation_playing = False
 
+mouse_previously_inside_node = False
+
 graph = 0
 speed = .3
 scroll_buffer = 10
@@ -90,13 +92,11 @@ def main(argv):
         elif symbol == pyglet.window.key.RIGHT:
             graph.step_forward()
         elif symbol == pyglet.window.key.UP:
-            #graph.zoom += .1
-            cam.z += .1
+            cam.zoom += .1
             graph.redraw()
         elif symbol == pyglet.window.key.DOWN:
-            cam.z -= .1
-            if graph.zoom > 0.2:
-                #graph.zoom -= .1
+            if cam.zoom > 0.2:
+                cam.zoom -= .1
                 graph.redraw()
         elif symbol == pyglet.window.key.F:
             graph.build_final()
@@ -115,15 +115,15 @@ def main(argv):
 
     @window.event
     def on_mouse_motion(x, y, dx, dy):
-        if y > window.height - scroll_buffer:
-            graph.center_y -= 10
-        elif y < scroll_buffer:
-            graph.center_y += 10
+        global mouse_previously_inside_node
+        in_node = graph.handle_mouse(x, y, cam)
+        if mouse_previously_inside_node and not in_node:
+            mouse_previously_inside_node = False
+            graph.data.clear_highlights()
+            graph.redraw()
 
-        if x > window.width - scroll_buffer:
-            graph.center_x -= 10
-        elif x < scroll_buffer:
-            graph.center_x += 10
+        elif in_node:
+            mouse_previously_inside_node = True
 
     #pyglet.clock.schedule_interval(update, speed)
     pyglet.app.run()

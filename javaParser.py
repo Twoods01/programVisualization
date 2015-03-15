@@ -12,15 +12,6 @@ import cStringIO
 import threading
 import arrayUtils
 
-def flatten(x):
-    result = []
-    for el in x:
-        if hasattr(el, "__iter__") and not isinstance(el, basestring):
-            result.extend(flatten(el))
-        else:
-            result.append(el)
-    return result
-
 def timeout(process):
     if process.poll is None:
         process.kill()
@@ -40,6 +31,8 @@ class Javap:
                         self.files[dirpath + "/" + file] = p.parse_file(dirpath + "/" + file)
 
         self.main = None
+        self.methods = self.get_all_methods()
+        self.objects = self.get_all_objects()
 
     def get_package_name(self):
         if self.tree.package_declaration is not None:
@@ -112,7 +105,7 @@ class Javap:
                         returns.append(statement.get_returns())
 
                     #Flatten the returns array and remove None entries
-                    returns = filter(lambda x: x != None, flatten(returns))
+                    returns = filter(lambda x: x != None, arrayUtils.flatten(returns))
 
                     #THIS IS NOT A FINAL SOLUTION
                     if ((builtin.type(method) is m.ConstructorDeclaration) or (builtin.type(method) is m.MethodDeclaration)) and len(returns) == 0:
@@ -191,7 +184,7 @@ class Javap:
         for file_string, parsed_data in self.files.iteritems():
             methods.append(self.get_methods(parsed_data))
 
-        return flatten(methods)
+        return arrayUtils.flatten(methods)
 
     #Returns an array of all MethodDeclaration's found in parsed_data
     def get_methods(self, parsed_data, start_point = None):
@@ -224,7 +217,7 @@ class Javap:
                 invocations.append(statement.get_method_invocations())
 
         #With all the appends, invocations is a multi dimensional list, flatten it
-        invocations = flatten(invocations)
+        invocations = arrayUtils.flatten(invocations)
 
         #For each method invocation, check if it is an invocation of a user defined method
         # if so, add it to the array
@@ -237,14 +230,15 @@ class Javap:
         return array
 
     def get_method_invocations_in_method(self, method):
-        methods = self.get_all_methods()
+
+        methods = self.methods
         invocations = []
         #Search through methods, to find all occurrences of MethodInvocation
         for statement in method.body:
             invocations.append(statement.get_method_invocations())
 
         #With all the appends, invocations is a multi dimensional list, flatten it
-        invocations = flatten(invocations)
+        invocations = arrayUtils.flatten(invocations)
 
         array = []
         #For each method invocation, check if it is an invocation of a user defined method
@@ -265,7 +259,7 @@ class Javap:
 
             #Have to check predicate for method call here otherwise array structure gets ruined
             if m.is_branch(statement):
-                method_in_pred = flatten(statement.get_predicate().get_method_invocations())
+                method_in_pred = arrayUtils.flatten(statement.get_predicate().get_method_invocations())
                 if len(method_in_pred) != 0:
                     branch_array.extend(method_in_pred)
 
@@ -309,6 +303,72 @@ class Javap:
                         branch_array.insert(i + 1, m.MethodInvocation("InvisibleNode"))
 
         return branch_array
+
+
+    def get_all_objects(self):
+        objs = []
+        for file_string, parsed_data in self.files.iteritems():
+            objs.append(self.get_objects(parsed_data))
+
+        return arrayUtils.flatten(objs)
+
+    #Returns an array of all MethodDeclaration's found in parsed_data
+    def get_objects(self, parsed_data, start_point = None):
+        obj_array = []
+
+        if start_point is not None:
+            tree = start_point
+        else:
+            tree = parsed_data.type_declarations
+
+        for cls in tree:
+            for element in cls.body:
+                if builtin.type(element) is m.ClassDeclaration:
+                    obj_array += self.get_objects(parsed_data, [element])
+            obj_array.append(cls)
+
+
+        return obj_array
+
+    def get_object(self, param):
+        #Store the type of the parameter
+        if isinstance(param.type, basestring):
+            cls = param.type
+        else:
+            cls = param.type.name.value
+
+        #Check if the parameter is an object
+        for obj in self.objects:
+            #Found the object
+            if obj.name == cls:
+                obj_fields = []
+
+                for statement in obj.body:
+                    if builtin.type(statement) is m.FieldDeclaration:
+                        obj_fields.append(statement)
+                return obj_fields
+
+        #Parameter is not an object, it's a primative
+        return []
+
+    def get_fields_in_method(self, method):
+        fields = []
+        try:
+            if method.target is not None:
+                fields.append(method.target.value)
+
+        #No target on InstanceCreation
+        except AttributeError:
+            pass
+
+        for arg in method.arguments:
+            a = arg.get_args()
+            if not isinstance(a, basestring) and len(a) > 0:
+                fields.extend(a)
+            else:
+                fields.append(a)
+
+        return arrayUtils.flatten(fields)
 
     def get_method_metrics(self):
         return map(lambda method: method.metrics(), self.get_methods())
