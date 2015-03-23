@@ -334,6 +334,8 @@ class Javap:
         #Store the type of the parameter
         if isinstance(param.type, basestring):
             cls = param.type
+        elif isinstance(param.type.name, basestring):
+            cls = param.type.name
         else:
             cls = param.type.name.value
 

@@ -4,7 +4,8 @@ import pyglet
 
 class DataView():
     initial_x = 75
-    initial_y = 100
+    initial_y = 240
+    max_nodes_in_row = 7
     x_increment = 125
 
     def __init__(self, parsed):
@@ -19,8 +20,11 @@ class DataView():
         self.objects = []
         for param in params:
             field_array = self.parsed.get_object(param)
-            x = DataView.initial_x + (len(self.objects) * DataView.x_increment)
-            self.objects.append(self.Object(param, field_array, x, DataView.initial_y))
+            x = DataView.initial_x + ((len(self.objects) % DataView.max_nodes_in_row) * DataView.x_increment)
+            y = DataView.initial_y - ((len(self.objects) / DataView.max_nodes_in_row) * 100)
+            self.objects.append(self.Object(param, field_array, x, y))
+
+        print("There are " + str(len(self.objects)) + " data objects in this method")
 
     #Given an x, y in pixel space returns a data object that x,y position is inside of, or False if it didnt hit a
     # data object
@@ -140,10 +144,12 @@ class DataView():
             def __init__(self, param):
                 if isinstance(param.type, basestring):
                     self.type = param.type
+                elif isinstance(param.type.name, basestring):
+                    self.type = param.type.name
                 else:
                     self.type = param.type.name.value
 
-                if type(param) is FieldDeclaration:
+                if issubclass(type(param), FieldDeclaration):
                     self.name = param.variable_declarators[0].variable.name
                     if param.variable_declarators[0].variable.dimensions > 0:
                         self.name += "[]"

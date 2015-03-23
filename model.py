@@ -266,6 +266,14 @@ class MethodDeclaration(SourceElement):
         else:
             self.end_line_num = None
 
+    def get_data(self):
+        data = self.parameters
+
+        for statement in self.body:
+            data.extend(statement.get_data())
+
+        return data
+
     def accept(self, visitor):
         if visitor.visit_MethodDeclaration(self):
             if self.body is not None:
@@ -653,6 +661,9 @@ class Assignment(BinaryExpression):
     def to_string(self):
         return self.lhs.to_string() + " " + self.operator + " " + self.rhs.to_string()
 
+    def get_data(self):
+        return []
+
     def get_predicate(self):
         if type(self.rhs) is Conditional:
             return self.rhs.predicate
@@ -796,6 +807,9 @@ class VariableDeclaration(Statement, FieldDeclaration):
     def accept(self, visitor):
         visitor.visit_VariableDeclaration(self)
 
+    def get_data(self):
+        return [self]
+
 
 class ArrayInitializer(SourceElement):
     def __init__(self, elements=None):
@@ -830,6 +844,9 @@ class MethodInvocation(Expression):
         invocations.extend([self])
 
         return invocations
+
+    def get_data(self):
+        return []
 
     def get_args(self):
         args = []
@@ -873,6 +890,25 @@ class IfThenElse(Statement):
             self.if_true.accept(visitor)
             if self.if_false is not None:
                 self.if_false.accept(visitor)
+
+    def get_data(self):
+        data = []
+
+        if type(self.if_true) is Block:
+            for statement in self.if_true:
+                data.extend(statement.get_data())
+        else:
+            data.extend(self.if_true.get_data())
+
+
+        if self.if_false:
+            if type(self.if_false) is Block:
+                for statement in self.if_false:
+                    data.extend(statement.get_data())
+            else:
+                data.extend(self.if_false.get_data())
+
+        return data
 
     def get_predicate(self):
         return self.predicate
@@ -1008,6 +1044,17 @@ class While(Statement):
 
         return returns
 
+    def get_data(self):
+        data = []
+
+        if type(self.body) is Block:
+            for statement in self.body:
+                data.extend(statement.get_data())
+        else:
+            data.extend(self.body.get_data())
+
+        return data
+
     def get_method_invocations(self):
         invocations = [MethodInvocation("loopStart")]
 
@@ -1067,6 +1114,17 @@ class For(Statement):
         string += self.body.to_string()
 
         return string + "}"
+
+    def get_data(self):
+        data = []
+
+        if type(self.body) is Block:
+            for statement in self.body:
+                data.extend(statement.get_data())
+        else:
+            data.extend(self.body.get_data())
+
+        return data
 
     def get_method_invocations(self):
         invocations = [MethodInvocation("loopStart")]
@@ -1277,6 +1335,9 @@ class Break(Statement):
         self._fields = ['label']
         self.label = label
 
+    def get_data(self):
+        return []
+
     def accept(self, visitor):
         visitor.visit_Break(self)
 
@@ -1368,6 +1429,16 @@ class Try(Statement):
         if self._finally:
             self._finally.accept(visitor)
 
+    def get_data(self):
+        data = []
+        for statement in self.block:
+            data.extend(statement.get_data())
+
+        for statement in self.catches:
+            data.extend(statement.get_data())
+
+        return data
+
     def get_returns(self):
         returns = []
         for statement in self.block:
@@ -1434,6 +1505,12 @@ class Catch(SourceElement):
     def accept(self, visitor):
         if visitor.visit_Catch(self):
             self.block.accept(visitor)
+
+    def get_data(self):
+        data = []
+        for statement in self.block:
+            data.extend(statement.get_data())
+        return data
 
     def get_method_invocations(self):
         inv = []

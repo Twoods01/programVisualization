@@ -102,15 +102,23 @@ def main(argv):
             graph.build_final()
         elif symbol == pyglet.window.key.W:
             cam.y += 50
+            if graph.invis_node:
+                graph.invis_node.y += 50
             graph.redraw()
         elif symbol == pyglet.window.key.S:
             cam.y -= 50
+            if graph.invis_node:
+                graph.invis_node.y -= 50
             graph.redraw()
         elif symbol == pyglet.window.key.A:
             cam.x -= 50
+            if graph.invis_node:
+                graph.invis_node.x -= 50
             graph.redraw()
         elif symbol == pyglet.window.key.D:
             cam.x += 50
+            if graph.invis_node:
+                graph.invis_node.x += 50
             graph.redraw()
 
     @window.event

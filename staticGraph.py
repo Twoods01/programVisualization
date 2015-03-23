@@ -241,7 +241,7 @@ class StaticGraph(graphInterface):
                 method = filter(lambda x: x.name == node.method.name, self.methods)
                 if len(method) > 0:
                     self.current = Node(method[0])
-                    self.data.add_params(method[0].parameters)
+                    self.data.add_params(method[0].get_data())
                     self.stack.append(self.current)
                     self.redraw()
                     cam.reset()
