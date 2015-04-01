@@ -101,39 +101,81 @@ class Javap:
                     if builtin.type(return_type) is m.Type:
                         return_type = return_type.name.value
 
+                    #The start of the method is considered branch 0 but never marked
+                    branch_num = 1
+                    #Find all returns in this method
                     for statement in method.body:
                         returns.append(statement.get_returns())
 
                     #Flatten the returns array and remove None entries
                     returns = filter(lambda x: x != None, arrayUtils.flatten(returns))
 
-                    #THIS IS NOT A FINAL SOLUTION
-                    if ((builtin.type(method) is m.ConstructorDeclaration) or (builtin.type(method) is m.MethodDeclaration)) and len(returns) == 0:
+                    #Manually add a "return" if the last statement in the method isn't one, e.g a void method
+                    if ((builtin.type(method) is m.ConstructorDeclaration) or (builtin.type(method) is m.MethodDeclaration))\
+                            and builtin.type(method.body[-1]) is not m.Return:
                         returns.append(m.Throw("No return", method.end_line_num))
 
 
+                    return_index = 0
+                    #We need to insert all lines, branches and returns, in order, in one pass
+                    for statement in method.body:
+                        #If the statement is a branch it has branch_line_nums, an array of line numbers marking
+                        # the start of each branch it produces
+                        if m.is_visual_branch(statement):
+                            for line in statement.branch_line_nums:
+                                #Make sure we've put all returns which come before this line
+                                while returns[return_index].line_num < line and return_index < len(returns) - 1:
+                                    inserted_lines = self.add_return_print(file_data, returns[return_index], inserted_lines, return_type, method.name, class_name)
+                                    return_index += 1
 
-                #For every return, remove the returned value, store it in temp variable
-                # add print out, then return variable
-                for ret in returns:
-                    if builtin.type(ret) is m.Return and return_type != "void":
-                        return_value = file_data[ret.line_num + inserted_lines].replace("return","",1).lstrip()
-                        file_data[ret.line_num + inserted_lines] = return_type + " __TEMP_VAR__ = " + return_value
-                        file_data.insert(ret.line_num + inserted_lines + 1,
-                                         'System.out.println("pop ' + method.name + ' ' + class_name +
-                                         ' " + Thread.currentThread().getId());\n')
-                        file_data.insert(ret.line_num + inserted_lines + 2, 'return __TEMP_VAR__;\n')
-                        inserted_lines += 2
-                    else:
-                        file_data.insert(ret.line_num + inserted_lines,
-                                         'System.out.println("pop ' + method.name + ' ' + class_name +
-                                         ' " + Thread.currentThread().getId());\n')
-                        inserted_lines += 1
+                                inserted_lines, branch_num = self.add_branch_print(file_data, line, inserted_lines, branch_num)
+
+                    #Make sure we've printed every return
+                    while return_index < len(returns):
+                        inserted_lines = self.add_return_print(file_data, returns[return_index], inserted_lines, return_type, method.name, class_name)
+                        return_index += 1
 
             for line in file_data:
                 file.write(line)
 
             file.close()
+
+    def add_branch_print(self, file_data, line, inserted_lines, branch_num):
+        #line numbers of -1 represent invisible nodes, don't have a print for them, but need to
+        # increment branch_num
+        if line > 0:
+            #This handles ifs of the form
+            #if (true)
+            #{
+            if file_data[line + inserted_lines].lstrip() == "{\n":
+                line -= 1
+
+            file_data.insert(line + inserted_lines,
+                             'System.out.println("branch ' + str(branch_num) + '");\n')
+            inserted_lines += 1
+        branch_num += 1
+
+        return inserted_lines, branch_num
+
+    def add_return_print(self, file_data, ret, inserted_lines, return_type, method_name, class_name):
+        #If this return is actually a return and not void
+        if builtin.type(ret) is m.Return and return_type != "void":
+            return_value = file_data[ret.line_num + inserted_lines].replace("return","",1).lstrip()
+            file_data[ret.line_num + inserted_lines] = return_type + " __TEMP_VAR__ = " + return_value
+            file_data.insert(ret.line_num + inserted_lines + 1,
+                             'System.out.println("pop ' + method_name + ' ' + class_name +
+                             ' " + Thread.currentThread().getId());\n')
+            file_data.insert(ret.line_num + inserted_lines + 2, 'return __TEMP_VAR__;\n')
+            inserted_lines += 2
+
+        #Void return or a manually added "return"
+        else:
+            file_data.insert(ret.line_num + inserted_lines,
+                             'System.out.println("pop ' + method_name + ' ' + class_name +
+                             ' " + Thread.currentThread().getId());\n')
+            inserted_lines += 1
+
+        return inserted_lines
 
     def run_file(self, processing=False, timeout=None):
         #Split the file with main into directories and file name

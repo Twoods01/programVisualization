@@ -23,7 +23,7 @@ def main(argv):
         print("main.py -d <directory>")
         sys.exit(2)
 
-    directory = "s1"
+    directory = "program"
     visualization = StaticGraph
     timeout = None
     processing = True
@@ -48,6 +48,7 @@ def main(argv):
         parsed.markup_file()
         graph = visualization(parsed.run_file(processing, timeout), parsed.get_all_methods())
     else:
+        parsed.markup_file()
         graph = visualization(parsed, window)
 
     #parsed.cleanup()

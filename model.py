@@ -5,6 +5,13 @@ def is_branch(statement):
         return True
     return False
 
+def is_loop(statement):
+    return type(statement) is While or type(statement) is For or type(statement) is ForEach
+
+#Determines if a given statement is visualized by a branch
+def is_visual_branch(statement):
+    return is_branch(statement) or is_loop(statement)
+
 # Base node
 class SourceElement(object):
     '''
@@ -180,12 +187,13 @@ class EmptyDeclaration(SourceElement):
 
 class FieldDeclaration(SourceElement):
 
-    def __init__(self, type, variable_declarators, modifiers=None):
+    def __init__(self, type, variable_declarators, line_num, modifiers=None):
         super(FieldDeclaration, self).__init__()
         self._fields = ['type', 'variable_declarators', 'modifiers']
         if modifiers is None:
             modifiers = []
         self.type = type
+        self.line_num = line_num
         self.variable_declarators = variable_declarators
         self.modifiers = modifiers
 
@@ -258,11 +266,9 @@ class MethodDeclaration(SourceElement):
         self.throws = throws
         self.line_num = line_num
         if self.body:
-            try:
-                self.end_line_num = self.body[-1].line_num
-            except AttributeError:
-                print("No end line set")
-                self.end_line_num = None
+            self.end_line_num = self.body[-1].line_num + 1
+            if is_visual_branch(self.body[-1]):
+                self.end_line_num = self.body[-1].end_line_num
         else:
             self.end_line_num = None
 
@@ -876,13 +882,21 @@ class MethodInvocation(Expression):
 
 class IfThenElse(Statement):
 
-    def __init__(self, predicate, if_true=None, if_false=None, line_num=None):
+    def __init__(self, predicate, if_true=None, if_false=None, end_line_num=None):
         super(IfThenElse, self).__init__()
         self._fields = ['predicate', 'if_true', 'if_false']
         self.predicate = predicate
         self.if_true = if_true
         self.if_false = if_false
-        self.line_num = line_num
+        self.line_num = if_true.line_num
+
+        if self.if_false is not None:
+            self.if_false_line_num = if_false.line_num
+        else:
+            self.if_false_line_num = -1
+
+        self.branch_line_nums = self.get_branch_numbers()
+        self.end_line_num = end_line_num
 
     def accept(self, visitor):
         if visitor.visit_IfThenElse(self):
@@ -890,6 +904,31 @@ class IfThenElse(Statement):
             self.if_true.accept(visitor)
             if self.if_false is not None:
                 self.if_false.accept(visitor)
+
+    def get_branch_numbers(self):
+        additional_branches = []
+
+        #First find any branches in the true block
+        for statement in self.if_true:
+            if is_visual_branch(statement):
+                additional_branches.extend(statement.get_branch_numbers())
+
+        #Next mark the else branch
+        #A line number of -1 will represent invisible nodes
+        if self.if_false is None:
+            additional_branches.append(-1)
+        elif is_branch(self.if_false):
+            additional_branches.extend(self.if_false.get_branch_numbers())
+        else:
+            additional_branches.append(self.if_false_line_num)
+
+        #Finally find any branches in the false block
+        if type(self.if_false) is Block:
+            for statement in self.if_false:
+                if is_visual_branch(statement):
+                    additional_branches.extend(statement.get_branch_numbers())
+
+        return [self.line_num] + additional_branches
 
     def get_data(self):
         data = []
@@ -1027,15 +1066,25 @@ class IfThenElse(Statement):
 
 class While(Statement):
 
-    def __init__(self, predicate, body=None, line_num=None):
+    def __init__(self, predicate, body=None, line_num=None, end_line_num=None):
         super(While, self).__init__()
         self._fields = ['predicate', 'body']
         self.predicate = predicate
         self.body = body
         self.line_num = line_num
+        self.end_line_num = end_line_num
+        self.branch_line_nums = self.get_branch_numbers()
 
     def accept(self, visitor):
         visitor.visit_While(self)
+
+    def get_branch_numbers(self):
+        branches = [-1, self.line_num]
+        for statement in self.body:
+            if is_visual_branch(statement):
+                branches.extend(statement.get_branch_numbers())
+
+        return branches
 
     def get_returns(self):
         returns = []
@@ -1093,7 +1142,7 @@ class While(Statement):
 
 class For(Statement):
 
-    def __init__(self, init, predicate, update, body, line_num):
+    def __init__(self, init, predicate, update, body, line_num, end_line_num):
         super(For, self).__init__()
         self._fields = ['init', 'predicate', 'update', 'body']
         self.init = init
@@ -1101,10 +1150,20 @@ class For(Statement):
         self.update = update
         self.body = body
         self.line_num = line_num
+        self.end_line_num = end_line_num
+        self.branch_line_nums = self.get_branch_numbers()
 
     def accept(self, visitor):
         if visitor.visit_For(self):
             self.body.accept(visitor)
+
+    def get_branch_numbers(self):
+        branches = [-1, self.line_num]
+        for statement in self.body:
+            if is_visual_branch(statement):
+                branches.extend(statement.get_branch_numbers())
+
+        return branches
 
     def to_string(self):
         string = "for (" + self.init.to_string() + "; " + self.predicate.to_string() + ";"
@@ -1366,6 +1425,11 @@ class Return(Statement):
 
     def get_returns(self):
         return self
+
+    def get_data(self):
+        if self.result is not None:
+            return self.result.get_data()
+        return []
 
     def to_string(self):
         if type(self.result) is str:

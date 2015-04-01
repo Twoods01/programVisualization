@@ -3,6 +3,9 @@ import java.lang.Thread;
 class test {
     public static void main(String[] args) {
 System.out.println("push main test " + Thread.currentThread().getId());
+        insert("Hi", "There");
+        branchTesting();
+        nestedLoop();
         String numString = recursiveString(5);
         System.out.println(numString);
         int num = addNumbersInString(numString);
@@ -11,19 +14,201 @@ System.out.println("push main test " + Thread.currentThread().getId());
 System.out.println("pop main test " + Thread.currentThread().getId());
     }
 
+    public void insert(ItemRecord root, ItemRecord data){
+System.out.println("push insert test " + Thread.currentThread().getId());
+        if (!root){ 
+System.out.println("branch 1");
+            root = data;
+        }
+        else if (root.word.compareToIgnoreCase(data.word) < 0){
+System.out.println("branch 2");
+            insert(root.left, data);
+        }
+        else if (root.word.compareToIgnoreCase(data.word) > 0){
+System.out.println("branch 3");
+            insert(root.right, data);
+        }
+System.out.println("pop insert test " + Thread.currentThread().getId());
+    }
+
+    public static void nestedLoop(){
+System.out.println("push nestedLoop test " + Thread.currentThread().getId());
+        int i = 0;
+        int j = 0;
+        while(i < 10){
+System.out.println("branch 2");
+            One();
+            while(j < 10){
+System.out.println("branch 4");
+                Two();
+                j++;
+            }
+            i++;
+        }
+System.out.println("pop nestedLoop test " + Thread.currentThread().getId());
+    }
+
+    public static void branchTesting(){
+System.out.println("push branchTesting test " + Thread.currentThread().getId());
+        int strLength = 1;
+        if (true)
+        {
+System.out.println("branch 1");
+System.out.println("pop branchTesting test " + Thread.currentThread().getId());
+            return ;
+        }
+
+        else{
+
+System.out.println("branch 2");
+            if (Three() > 1 && One())
+            {
+System.out.println("branch 3");
+                Four();
+                if (true){
+System.out.println("branch 4");
+System.out.println("pop branchTesting test " + Thread.currentThread().getId());
+                    return;
+                }
+                else if (Two())
+                {
+
+System.out.println("branch 5");
+                    Five();
+                    if (true){
+System.out.println("branch 6");
+System.out.println("pop branchTesting test " + Thread.currentThread().getId());
+                        return ;
+                    }
+
+                }
+
+            }
+            if (1 > 3 && One() && Two())
+            {
+System.out.println("branch 10");
+                Six();
+                if (true){
+System.out.println("branch 11");
+System.out.println("pop branchTesting test " + Thread.currentThread().getId());
+                    return;
+                }
+
+            }
+
+
+        }
+System.out.println("pop branchTesting test " + Thread.currentThread().getId());
+    }
+
+    //public static void Start(){return;}
+    public static void End(){
+System.out.println("push End test " + Thread.currentThread().getId());
+System.out.println("pop End test " + Thread.currentThread().getId());
+        return;
+    }
+    public static boolean One(){
+System.out.println("push One test " + Thread.currentThread().getId());
+boolean __TEMP_VAR__ = true;
+System.out.println("pop One test " + Thread.currentThread().getId());
+return __TEMP_VAR__;
+    }
+    public static boolean Two(){
+System.out.println("push Two test " + Thread.currentThread().getId());
+boolean __TEMP_VAR__ = true;
+System.out.println("pop Two test " + Thread.currentThread().getId());
+return __TEMP_VAR__;
+    }
+    public static int Three(){
+System.out.println("push Three test " + Thread.currentThread().getId());
+int __TEMP_VAR__ = 1;
+System.out.println("pop Three test " + Thread.currentThread().getId());
+return __TEMP_VAR__;
+    }
+    public static void Four(){
+System.out.println("push Four test " + Thread.currentThread().getId());
+System.out.println("pop Four test " + Thread.currentThread().getId());
+        return;
+    }
+    public static void Five(){
+System.out.println("push Five test " + Thread.currentThread().getId());
+System.out.println("pop Five test " + Thread.currentThread().getId());
+        return;
+    }
+    public static void Six(){
+System.out.println("push Six test " + Thread.currentThread().getId());
+System.out.println("pop Six test " + Thread.currentThread().getId());
+        return;
+    }
+    public static void Seven(){
+System.out.println("push Seven test " + Thread.currentThread().getId());
+System.out.println("pop Seven test " + Thread.currentThread().getId());
+        return;
+    }
+    public static void Eight(){
+System.out.println("push Eight test " + Thread.currentThread().getId());
+System.out.println("pop Eight test " + Thread.currentThread().getId());
+        return;
+    }
+    public static void Nine(){
+System.out.println("push Nine test " + Thread.currentThread().getId());
+System.out.println("pop Nine test " + Thread.currentThread().getId());
+        return;
+    }
+    public static void Ten(){
+System.out.println("push Ten test " + Thread.currentThread().getId());
+System.out.println("pop Ten test " + Thread.currentThread().getId());
+        return;
+    }
+
+    
+
     public static String recursiveString(int num){
 System.out.println("push recursiveString test " + Thread.currentThread().getId());
+        test();
         if(num == 0){
+System.out.println("branch 1");
             int whoCares = 1;
+
+            nothing();
 String __TEMP_VAR__ = ((Integer)num).toString();
 System.out.println("pop recursiveString test " + Thread.currentThread().getId());
 return __TEMP_VAR__;
         }
-        else{
+        else if(num == 2){
+System.out.println("branch 2");
 String __TEMP_VAR__ = ((Integer)num).toString() + recursiveString(decrementNumber(num));
 System.out.println("pop recursiveString test " + Thread.currentThread().getId());
 return __TEMP_VAR__;
         }
+        else if(num == 3){
+System.out.println("branch 3");
+            ((Integer)num).toString();
+            if(num == 3){
+System.out.println("branch 4");
+                test();   
+            }
+            else{
+System.out.println("branch 5");
+                System.out.println("Yaa");
+                if(num == 19){
+System.out.println("branch 6");
+                    nothing();
+                }
+                else{
+System.out.println("branch 7");
+                    System.out.println("Hello");
+                }
+            }
+        }
+        else if(num == 4){
+System.out.println("branch 8");
+            test();
+        }
+        test();
+String __TEMP_VAR__ = "Hi";
+System.out.println("pop recursiveString test " + Thread.currentThread().getId());
+return __TEMP_VAR__;
     }
 
     public static int decrementNumber(int num){
@@ -45,6 +230,7 @@ System.out.println("push addNumbersInString test " + Thread.currentThread().getI
         int sum = 0;
         nothing();
         for(int i = 0; i < s.length(); i++){
+System.out.println("branch 2");
             sum = addNumbers(sum, Character.getNumericValue(s.charAt(i)));
         }
 int __TEMP_VAR__ = sum;
@@ -56,9 +242,15 @@ return __TEMP_VAR__;
 System.out.println("push nothing test " + Thread.currentThread().getId());
         int i = 5;
         while(i > 0){
+System.out.println("branch 2");
             i = decrementNumber(i);
         }
 System.out.println("pop nothing test " + Thread.currentThread().getId());
-        return;
+    }
+
+    public static void test(){
+System.out.println("push test test " + Thread.currentThread().getId());
+        System.out.println("Hello");
+System.out.println("pop test test " + Thread.currentThread().getId());
     }
 }

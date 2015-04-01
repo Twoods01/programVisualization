@@ -12,12 +12,15 @@ class test {
     }
 
     public void insert(ItemRecord root, ItemRecord data){
-        if (!root) 
+        if (!root){ 
             root = data;
-        else if (root.word.compareToIgnoreCase(data.word) < 0)
+        }
+        else if (root.word.compareToIgnoreCase(data.word) < 0){
             insert(root.left, data);
-        else if (root.word.compareToIgnoreCase(data.word) > 0)
+        }
+        else if (root.word.compareToIgnoreCase(data.word) > 0){
             insert(root.right, data);
+        }
     }
 
     public static void nestedLoop(){
@@ -40,30 +43,31 @@ class test {
             return ;
         }
 
-        else
-        {
+        else{
 
             if (Three() > 1 && One())
             {
                 Four();
-                if (true)
+                if (true){
                     return;
+                }
                 else if (Two())
                 {
 
                     Five();
-                    if (true)
+                    if (true){
                         return ;
+                    }
 
                 }
 
             }
-            if (1 > 3 && One()
-                    && Two())
+            if (1 > 3 && One() && Two())
             {
                 Six();
-                if (true)
+                if (true){
                     return;
+                }
 
             }
 
@@ -72,17 +76,39 @@ class test {
     }
 
     //public static void Start(){return;}
-    public static void End(){return;}
-    public static boolean One(){return true;}
-    public static boolean Two(){return true;}
-    public static int Three(){return 1;}
-    public static void Four(){return;}
-    public static void Five(){return;}
-    public static void Six(){return;}
-    public static void Seven(){return;}
-    public static void Eight(){return;}
-    public static void Nine(){return;}
-    public static void Ten(){return;}
+    public static void End(){
+        return;
+    }
+    public static boolean One(){
+        return true;
+    }
+    public static boolean Two(){
+        return true;
+    }
+    public static int Three(){
+        return 1;
+    }
+    public static void Four(){
+        return;
+    }
+    public static void Five(){
+        return;
+    }
+    public static void Six(){
+        return;
+    }
+    public static void Seven(){
+        return;
+    }
+    public static void Eight(){
+        return;
+    }
+    public static void Nine(){
+        return;
+    }
+    public static void Ten(){
+        return;
+    }
 
     
 
@@ -141,7 +167,6 @@ class test {
         while(i > 0){
             i = decrementNumber(i);
         }
-        return;
     }
 
     public static void test(){

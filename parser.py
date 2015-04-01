@@ -120,7 +120,7 @@ class ExpressionParser(object):
 
     def p_assignment(self, p):
         '''assignment : postfix_expression assignment_operator assignment_expression'''
-        p[0] = Assignment(p[2], p[1], p[3], p.lexer.lineno)
+        p[0] = Assignment(p[2], p[1], p[3], p.lexer.lineno - 1)
 
     def p_assignment_operator(self, p):
         '''assignment_operator : '='
@@ -467,7 +467,11 @@ class StatementParser(object):
 
     def p_block(self, p):
         '''block : '{' block_statements_opt '}' '''
-        p[0] = Block(p[2], p.lexer.lineno)
+        line_num = p[2][0].line_num
+        if is_branch(p[2][0]):
+            line_num -= 1
+
+        p[0] = Block(p[2], line_num)
 
     def p_block_statements_opt(self, p):
         '''block_statements_opt : block_statements'''
@@ -500,11 +504,11 @@ class StatementParser(object):
 
     def p_local_variable_declaration(self, p):
         '''local_variable_declaration : type variable_declarators'''
-        p[0] = VariableDeclaration(p[1], p[2])
+        p[0] = VariableDeclaration(p[1], p[2], p.lexer.lineno - 1)
 
     def p_local_variable_declaration2(self, p):
         '''local_variable_declaration : modifiers type variable_declarators'''
-        p[0] = VariableDeclaration(p[2], p[3], modifiers=p[1])
+        p[0] = VariableDeclaration(p[2], p[3], p.lexer.lineno - 1, modifiers=p[1])
 
     def p_variable_declarators(self, p):
         '''variable_declarators : variable_declarator
@@ -596,19 +600,19 @@ class StatementParser(object):
 
     def p_method_invocation(self, p):
         '''method_invocation : NAME '(' argument_list_opt ')' '''
-        p[0] = MethodInvocation(p[1], arguments=p[3], line_num=p.lexer.lineno)
+        p[0] = MethodInvocation(p[1], arguments=p[3], line_num=p.lexer.lineno - 1)
 
     def p_method_invocation2(self, p):
         '''method_invocation : name '.' type_arguments NAME '(' argument_list_opt ')'
                              | primary '.' type_arguments NAME '(' argument_list_opt ')'
                              | SUPER '.' type_arguments NAME '(' argument_list_opt ')' '''
-        p[0] = MethodInvocation(p[4], target=p[1], type_arguments=p[3], arguments=p[6], line_num=p.lexer.lineno)
+        p[0] = MethodInvocation(p[4], target=p[1], type_arguments=p[3], arguments=p[6], line_num=p.lexer.lineno - 1)
 
     def p_method_invocation3(self, p):
         '''method_invocation : name '.' NAME '(' argument_list_opt ')'
                              | primary '.' NAME '(' argument_list_opt ')'
                              | SUPER '.' NAME '(' argument_list_opt ')' '''
-        p[0] = MethodInvocation(p[3], target=p[1], arguments=p[5], line_num=p.lexer.lineno)
+        p[0] = MethodInvocation(p[3], target=p[1], arguments=p[5], line_num=p.lexer.lineno - 1)
 
     def p_labeled_statement(self, p):
         '''labeled_statement : label ':' statement'''
@@ -626,7 +630,7 @@ class StatementParser(object):
 
     def p_if_then_statement(self, p):
         '''if_then_statement : IF '(' expression ')' statement'''
-        p[0] = IfThenElse(p[3], p[5], line_num=p.lexer.lineno - 1)
+        p[0] = IfThenElse(p[3], p[5], end_line_num=p.lexer.lineno - 1)
 
     def p_if_then_else_statement(self, p):
         '''if_then_else_statement : IF '(' expression ')' statement_no_short_if ELSE statement'''
@@ -638,19 +642,20 @@ class StatementParser(object):
 
     def p_while_statement(self, p):
         '''while_statement : WHILE '(' expression ')' statement'''
-        p[0] = While(p[3], p[5], p.lexer.lineno - 1)
+
+        p[0] = While(p[3], p[5], p[5].line_num, p.lexer.lineno - 1)
 
     def p_while_statement_no_short_if(self, p):
         '''while_statement_no_short_if : WHILE '(' expression ')' statement_no_short_if'''
-        p[0] = While(p[3], p[5], p.lexer.lineno - 1)
+        p[0] = While(p[3], p[5], p[5].line_num, p.lexer.lineno - 1)
 
     def p_for_statement(self, p):
         '''for_statement : FOR '(' for_init_opt ';' expression_opt ';' for_update_opt ')' statement'''
-        p[0] = For(p[3], p[5], p[7], p[9], p.lexer.lineno - 1)
+        p[0] = For(p[3], p[5], p[7], p[9], p[9].line_num, p.lexer.lineno - 1)
 
     def p_for_statement_no_short_if(self, p):
         '''for_statement_no_short_if : FOR '(' for_init_opt ';' expression_opt ';' for_update_opt ')' statement_no_short_if'''
-        p[0] = For(p[3], p[5], p[7], p[9], p.lexer.lineno - 1)
+        p[0] = For(p[3], p[5], p[7], p[9], p[9].line_num, p.lexer.lineno - 1)
 
     def p_for_init_opt(self, p):
         '''for_init_opt : for_init
