@@ -11,6 +11,7 @@ System.out.println("push main test " + Thread.currentThread().getId());
         int num = addNumbersInString(numString);
         System.out.println(num);
         nothing();
+System.out.println("branch 1");
 System.out.println("pop main test " + Thread.currentThread().getId());
     }
 
@@ -21,13 +22,14 @@ System.out.println("branch 1");
             root = data;
         }
         else if (root.word.compareToIgnoreCase(data.word) < 0){
-System.out.println("branch 2");
+System.out.println("branch 3");
             insert(root.left, data);
         }
         else if (root.word.compareToIgnoreCase(data.word) > 0){
-System.out.println("branch 3");
+System.out.println("branch 5");
             insert(root.right, data);
         }
+System.out.println("branch 9");
 System.out.println("pop insert test " + Thread.currentThread().getId());
     }
 
@@ -45,6 +47,7 @@ System.out.println("branch 4");
             }
             i++;
         }
+System.out.println("branch 5");
 System.out.println("pop nestedLoop test " + Thread.currentThread().getId());
     }
 
@@ -70,13 +73,14 @@ System.out.println("branch 4");
 System.out.println("pop branchTesting test " + Thread.currentThread().getId());
                     return;
                 }
+                //problem area
                 else if (Two())
                 {
 
-System.out.println("branch 5");
+System.out.println("branch 6");
                     Five();
                     if (true){
-System.out.println("branch 6");
+System.out.println("branch 7");
 System.out.println("pop branchTesting test " + Thread.currentThread().getId());
                         return ;
                     }
@@ -86,10 +90,10 @@ System.out.println("pop branchTesting test " + Thread.currentThread().getId());
             }
             if (1 > 3 && One() && Two())
             {
-System.out.println("branch 10");
+System.out.println("branch 12");
                 Six();
                 if (true){
-System.out.println("branch 11");
+System.out.println("branch 13");
 System.out.println("pop branchTesting test " + Thread.currentThread().getId());
                     return;
                 }
@@ -98,6 +102,7 @@ System.out.println("pop branchTesting test " + Thread.currentThread().getId());
 
 
         }
+System.out.println("branch 16");
 System.out.println("pop branchTesting test " + Thread.currentThread().getId());
     }
 
@@ -176,33 +181,33 @@ System.out.println("pop recursiveString test " + Thread.currentThread().getId())
 return __TEMP_VAR__;
         }
         else if(num == 2){
-System.out.println("branch 2");
+System.out.println("branch 3");
 String __TEMP_VAR__ = ((Integer)num).toString() + recursiveString(decrementNumber(num));
 System.out.println("pop recursiveString test " + Thread.currentThread().getId());
 return __TEMP_VAR__;
         }
         else if(num == 3){
-System.out.println("branch 3");
+System.out.println("branch 5");
             ((Integer)num).toString();
             if(num == 3){
-System.out.println("branch 4");
+System.out.println("branch 6");
                 test();   
             }
             else{
-System.out.println("branch 5");
+System.out.println("branch 7");
                 System.out.println("Yaa");
                 if(num == 19){
-System.out.println("branch 6");
+System.out.println("branch 8");
                     nothing();
                 }
                 else{
-System.out.println("branch 7");
+System.out.println("branch 9");
                     System.out.println("Hello");
                 }
             }
         }
         else if(num == 4){
-System.out.println("branch 8");
+System.out.println("branch 11");
             test();
         }
         test();
@@ -245,12 +250,14 @@ System.out.println("push nothing test " + Thread.currentThread().getId());
 System.out.println("branch 2");
             i = decrementNumber(i);
         }
+System.out.println("branch 3");
 System.out.println("pop nothing test " + Thread.currentThread().getId());
     }
 
     public static void test(){
 System.out.println("push test test " + Thread.currentThread().getId());
         System.out.println("Hello");
+System.out.println("branch 1");
 System.out.println("pop test test " + Thread.currentThread().getId());
     }
 }

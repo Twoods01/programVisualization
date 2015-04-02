@@ -895,8 +895,9 @@ class IfThenElse(Statement):
         else:
             self.if_false_line_num = -1
 
-        self.branch_line_nums = self.get_branch_numbers()
         self.end_line_num = end_line_num
+        self.branch_line_nums = self.get_branch_numbers()
+
 
     def accept(self, visitor):
         if visitor.visit_IfThenElse(self):
@@ -918,7 +919,7 @@ class IfThenElse(Statement):
         if self.if_false is None:
             additional_branches.append(-1)
         elif is_branch(self.if_false):
-            additional_branches.extend(self.if_false.get_branch_numbers())
+            additional_branches.extend([-1] + self.if_false.get_branch_numbers() + [-1])
         else:
             additional_branches.append(self.if_false_line_num)
 
@@ -927,6 +928,7 @@ class IfThenElse(Statement):
             for statement in self.if_false:
                 if is_visual_branch(statement):
                     additional_branches.extend(statement.get_branch_numbers())
+
 
         return [self.line_num] + additional_branches
 

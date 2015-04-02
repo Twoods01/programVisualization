@@ -135,6 +135,11 @@ class Javap:
                         inserted_lines = self.add_return_print(file_data, returns[return_index], inserted_lines, return_type, method.name, class_name)
                         return_index += 1
 
+                    #If we had to manually insert a "return" we also have to manually insert the last branch
+                    if ((builtin.type(method) is m.ConstructorDeclaration) or (builtin.type(method) is m.MethodDeclaration))\
+                            and builtin.type(method.body[-1]) is not m.Return:
+                        inserted_lines, branch_num = self.add_branch_print(file_data, method.end_line_num - 1, inserted_lines, branch_num)
+
             for line in file_data:
                 file.write(line)
 

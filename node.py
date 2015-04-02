@@ -16,7 +16,7 @@ class Node:
     #Construct a new Node given a MethodDeclaration which it represents, and a parent if it has one
     def __init__(self, method, parent=None, visible=True):
         #Array of child nodes
-        self.children = []
+        self.child_branches = []
         #Array of parent nodes
         self.parents = []
         if parent is not None:
@@ -38,7 +38,7 @@ class Node:
     #Print for debugging
     def write(self):
         print(self.method.name)
-        print(' children ' + str(map(lambda x: x.method.name, self.children)))
+        print(' children ' + str(self.child_branches))
         print(' parents ' + str(map(lambda x: x.method.name, self.parents)))
 
     #Set x,y position of this node
@@ -75,6 +75,9 @@ class Node:
                           anchor_x= 'center').draw()
 
         pyglet.gl.glPopMatrix()
+
+    def add_branch(self, branch_num):
+        self.child_branches.append(branch_num)
 
     #Returns true if this node has been given a location, otherwise false
     def placed(self):

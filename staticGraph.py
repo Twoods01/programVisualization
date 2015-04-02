@@ -42,14 +42,16 @@ class StaticGraph(graphInterface):
         if not self.needs_redraw:
             return
 
-        for node in self.nodes:
-            node.connect()
+        for branch in self.nodes:
+            for node in branch:
+                node.connect()
 
-        for node in self.nodes:
-            if node.method.name in map(lambda x: x.name, self.methods):
-                node.draw(standard_color)
-            else:
-                node.draw(library_method_color)
+        for branch in self.nodes:
+            for node in branch:
+                if node.method.name in map(lambda x: x.name, self.methods):
+                    node.draw(standard_color)
+                else:
+                    node.draw(library_method_color)
 
         if self.invis_node:
             self.invis_node.connect()
@@ -68,12 +70,12 @@ class StaticGraph(graphInterface):
 
         x = 75
         y = window.height / 2
-        self.chain_nodes(self.parsed.get_method_invocations_in_method(self.current.method), None, x, y)
+        self.chain_nodes(self.parsed.get_method_invocations_in_method(self.current.method), None, x, y, 0)
 
     #Recursively chains branched_node_array together, returns the parents of the previous branch
-    def chain_nodes(self, branched_node_array, parent_nodes, x, y, break_flag=False):
+    def chain_nodes(self, branched_node_array, parent_nodes, x, y, branch_num, break_flag=False):
         if len(branched_node_array) == 0:
-            return None
+            return None, branch_num
 
         #New branch
         if hasattr(branched_node_array[0], '__iter__'):
@@ -98,7 +100,7 @@ class StaticGraph(graphInterface):
             #For every path in this branch
             for branch in branched_node_array[0]:
                 #Recurse on the path, store the returned final_node and add it to our new parent set
-                final_nodes_in_branch = self.chain_nodes(branch, parent_nodes, x, y)
+                final_nodes_in_branch, branch_num = self.chain_nodes(branch, parent_nodes, x, y, branch_num + 1)
                 #Filter out nodes with method name Return, as this stops execution
                 new_parents.extend(filter(lambda x: x.method.name != "Return", arrayUtils.flatten(final_nodes_in_branch)))
 
@@ -115,15 +117,16 @@ class StaticGraph(graphInterface):
 
             #Return Y to its initial position
             y = start_y
+
             #Recurse on the remaining array, with new_parents, and x incremented by the longest path in the branch
-            final_nodes = self.chain_nodes(branched_node_array[1:], new_parents, x + ((node_width + horizontal_buffer) * longest_array_length), y)
+            final_nodes, branch_num = self.chain_nodes(branched_node_array[1:], new_parents, x + ((node_width + horizontal_buffer) * longest_array_length), y, branch_num)
 
             #If the returned node was None, this node is the final in a branch, return it
             if final_nodes is None:
-                return new_parents
+                return new_parents, branch_num
             #Else final node has already been found, pass it along
             else:
-                return final_nodes
+                return final_nodes, branch_num
 
         #Single Node
         else:
@@ -143,18 +146,30 @@ class StaticGraph(graphInterface):
                     if break_flag or parent.method.name != "Break":
                         node.add_parent(parent)
 
+                        if parent.method.name == "InvisibleNode":
+                            parent.add_branch(branch_num + 1)
+                        else:
+                            parent.add_branch(branch_num)
+
+                if len(parent_nodes) > 1:
+                    branch_num += 1
+
             #Add the node to the node list
-            self.nodes.append(node)
+            try:
+                self.nodes[branch_num].append(node)
+            except IndexError:
+                self.nodes.append([])
+                self.nodes[branch_num].append(node)
 
             #Recurse on remaining array
-            final_node = self.chain_nodes(branched_node_array[1:], parents, x + node_width + horizontal_buffer, y, break_flag=len(parents) > 1)
+            final_node, branch_num = self.chain_nodes(branched_node_array[1:], parents, x + node_width + horizontal_buffer, y, branch_num, break_flag=len(parents) > 1)
 
             #If the returned node was None, this node is the final in a branch, return it
             if final_node is None:
-                return [node]
+                return [node], branch_num
             #Else final node has already been found, pass it along
             else:
-                return [final_node]
+                return [final_node], branch_num
 
     #Returns the length of the longest array found within |nested_array|
     def longest_array(self, nested_array):
@@ -209,13 +224,14 @@ class StaticGraph(graphInterface):
     def handle_mouse(self, x, y, cam):
         self.invis_node = None
         inside_node = False
-        for node in self.nodes:
-            if node.hit(x, y, cam.x, cam.y):
-                inside_node = True
-                fields = self.parsed.get_fields_in_method(node.method)
-                self.data.highlight(fields)
-                self.redraw()
-                break
+        for branch in self.nodes:
+            for node in branch:
+                if node.hit(x, y, cam.x, cam.y):
+                    inside_node = True
+                    fields = self.parsed.get_fields_in_method(node.method)
+                    self.data.highlight(fields)
+                    self.redraw()
+                    break
 
         if not inside_node:
             obj = self.data.hit(x, y)
@@ -224,29 +240,37 @@ class StaticGraph(graphInterface):
                 self.invis_node = Node(MethodInvocation("InvisibleNode"), visible=False)
                 self.invis_node.set_position(obj.x + cam.x, obj.y + cam.y)
 
-                for node in self.nodes:
-                    fields = self.parsed.get_fields_in_method(node.method)
-                    for field in fields:
-                        if obj.includes(field):
-                            self.invis_node.add_parent(node)
+                for branch in self.nodes:
+                    for node in branch:
+                        fields = self.parsed.get_fields_in_method(node.method)
+                        for field in fields:
+                            if obj.includes(field):
+                                self.invis_node.add_parent(node)
 
                 self.redraw()
 
         return inside_node
 
+    def print_branched_nodes(self):
+        for i, branch in enumerate(self.nodes):
+            print("branch " + str(i) + " is " + str(map(lambda x: x.method.name, branch)))
+            map(lambda x: x.write(), branch)
+
+
     def handle_input(self, x, y, cam, window):
 
-        for node in self.nodes:
-            if node.hit(x, y, cam.x, cam.y):
-                method = filter(lambda x: x.name == node.method.name, self.methods)
-                if len(method) > 0:
-                    self.current = Node(method[0])
-                    self.data.add_params(method[0].get_data())
-                    self.stack.append(self.current)
-                    self.redraw()
-                    cam.reset()
-                    self.place_nodes(window)
-                return
+        for branch in self.nodes:
+            for node in branch:
+                if node.hit(x, y, cam.x, cam.y):
+                    method = filter(lambda x: x.name == node.method.name, self.methods)
+                    if len(method) > 0:
+                        self.current = Node(method[0])
+                        self.data.add_params(method[0].get_data())
+                        self.stack.append(self.current)
+                        self.redraw()
+                        cam.reset()
+                        self.place_nodes(window)
+                    return
 
         node = self.stack.get_clicked_item(x, y)
 
