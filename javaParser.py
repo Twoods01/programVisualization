@@ -214,7 +214,7 @@ class Javap:
         #Go through each line of output and add print statements to program_flow
         program_flow = []
         for line in cStringIO.StringIO(java.communicate()[0]):
-            if "push" in line or "pop" in line:
+            if "push" in line or "pop" in line or "branch" in line:
                 program_flow.append(line.replace("\n", ""))
 
         if timeout:

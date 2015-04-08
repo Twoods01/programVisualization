@@ -1799,6 +1799,10 @@ class Name(SourceElement):
     def to_string(self):
         return self.value
 
+    #TODO: fix this
+    def get_data(self):
+        return []
+
     def get_method_invocations(self):
         return []
 

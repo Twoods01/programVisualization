@@ -3,7 +3,6 @@ import java.lang.Thread;
 class test {
     public static void main(String[] args) {
 System.out.println("push main test " + Thread.currentThread().getId());
-        insert("Hi", "There");
         branchTesting();
         nestedLoop();
         String numString = recursiveString(5);
@@ -13,24 +12,6 @@ System.out.println("push main test " + Thread.currentThread().getId());
         nothing();
 System.out.println("branch 1");
 System.out.println("pop main test " + Thread.currentThread().getId());
-    }
-
-    public void insert(ItemRecord root, ItemRecord data){
-System.out.println("push insert test " + Thread.currentThread().getId());
-        if (!root){ 
-System.out.println("branch 1");
-            root = data;
-        }
-        else if (root.word.compareToIgnoreCase(data.word) < 0){
-System.out.println("branch 3");
-            insert(root.left, data);
-        }
-        else if (root.word.compareToIgnoreCase(data.word) > 0){
-System.out.println("branch 5");
-            insert(root.right, data);
-        }
-System.out.println("branch 9");
-System.out.println("pop insert test " + Thread.currentThread().getId());
     }
 
     public static void nestedLoop(){
@@ -54,7 +35,7 @@ System.out.println("pop nestedLoop test " + Thread.currentThread().getId());
     public static void branchTesting(){
 System.out.println("push branchTesting test " + Thread.currentThread().getId());
         int strLength = 1;
-        if (true)
+        if (false)
         {
 System.out.println("branch 1");
 System.out.println("pop branchTesting test " + Thread.currentThread().getId());
@@ -88,7 +69,7 @@ System.out.println("pop branchTesting test " + Thread.currentThread().getId());
                 }
 
             }
-            if (1 > 3 && One() && Two())
+            if (One() && Two())
             {
 System.out.println("branch 12");
                 Six();
@@ -97,7 +78,6 @@ System.out.println("branch 13");
 System.out.println("pop branchTesting test " + Thread.currentThread().getId());
                     return;
                 }
-
             }
 
 

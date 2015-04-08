@@ -93,9 +93,10 @@ class Node:
                and y > self.y - camy - y_offset and y < self.y + node_height - camy - y_offset
 
     #Connect current node to |node|
-    def connect(self):
+    def connect(self, color=[255, 255, 255]):
         pyglet.gl.glLineWidth(3)
         for p in self.parents:
             pyglet.graphics.draw(2, pyglet.gl.GL_LINES,
                                 ('v2i', (self.x, self.y,
-                                         p.x, p.y)))
+                                         p.x, p.y)),
+                                ('c3B', (color[0], color[1], color[2]) * 2))

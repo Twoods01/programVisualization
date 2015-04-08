@@ -13,7 +13,8 @@ animation_playing = False
 mouse_previously_inside_node = False
 
 graph = 0
-speed = .3
+frame_rate = 60
+speed = 1.0 / frame_rate
 scroll_buffer = 10
 
 def main(argv):
@@ -57,15 +58,15 @@ def main(argv):
 
     @window.event
     def on_draw():
-         if graph.needs_redraw:
-            window.clear()
-            cam.standard_projection()
-            graph.draw(window)
-            cam.hud_projection()
-            graph.draw_UI(window)
-            if visualization.isDynamic:
-                draw_UI(window)
-            #fps_display.draw()
+        pyglet.clock.tick()
+        window.clear()
+        cam.standard_projection()
+        graph.draw(window, cam)
+        cam.hud_projection()
+        graph.draw_UI(window)
+        if visualization.isDynamic:
+            draw_UI(window)
+        fps_display.draw()
 
 
     @window.event
@@ -94,33 +95,29 @@ def main(argv):
             graph.step_forward()
         elif symbol == pyglet.window.key.UP:
             cam.zoom += .1
-            graph.redraw()
         elif symbol == pyglet.window.key.DOWN:
             if cam.zoom > 0.2:
                 cam.zoom -= .1
-                graph.redraw()
         elif symbol == pyglet.window.key.F:
             graph.build_final()
         elif symbol == pyglet.window.key.W:
             cam.y += 50
             if graph.invis_node:
                 graph.invis_node.y += 50
-            graph.redraw()
         elif symbol == pyglet.window.key.S:
             cam.y -= 50
             if graph.invis_node:
                 graph.invis_node.y -= 50
-            graph.redraw()
         elif symbol == pyglet.window.key.A:
             cam.x -= 50
             if graph.invis_node:
                 graph.invis_node.x -= 50
-            graph.redraw()
         elif symbol == pyglet.window.key.D:
             cam.x += 50
             if graph.invis_node:
                 graph.invis_node.x += 50
-            graph.redraw()
+        elif symbol == pyglet.window.key.SPACE:
+            graph.auto_play = not graph.auto_play
 
     @window.event
     def on_mouse_motion(x, y, dx, dy):
@@ -129,12 +126,12 @@ def main(argv):
         if mouse_previously_inside_node and not in_node:
             mouse_previously_inside_node = False
             graph.data.clear_highlights()
-            graph.redraw()
 
         elif in_node:
             mouse_previously_inside_node = True
 
-    #pyglet.clock.schedule_interval(update, speed)
+    pyglet.clock.schedule_interval(update, speed)
+    pyglet.clock.set_fps_limit(frame_rate)
     pyglet.app.run()
 
 def draw_UI(window):

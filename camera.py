@@ -31,6 +31,12 @@ class Camera():
         pyglet.gl.glTranslatef(-(self.width / 2 + node.node_width / 2), -(self.height / 2 + node.node_height / 2), 0)
         pyglet.gl.glTranslatef(-self.x, -self.y, -self.z)
 
+    def center_on(self, node):
+        delta_x = (node.x - (self.width / 2) - self.x) / 10
+        self.x += delta_x
+
+        delta_y = (node.y - (self.height / 2) - self.y) / 10
+        self.y += delta_y
 
     def hud_projection(self):
         pyglet.gl.glLoadIdentity()

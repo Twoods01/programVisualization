@@ -1,7 +1,6 @@
 
 class test {
     public static void main(String[] args) {
-        insert("Hi", "There");
         branchTesting();
         nestedLoop();
         String numString = recursiveString(5);
@@ -9,18 +8,6 @@ class test {
         int num = addNumbersInString(numString);
         System.out.println(num);
         nothing();
-    }
-
-    public void insert(ItemRecord root, ItemRecord data){
-        if (!root){ 
-            root = data;
-        }
-        else if (root.word.compareToIgnoreCase(data.word) < 0){
-            insert(root.left, data);
-        }
-        else if (root.word.compareToIgnoreCase(data.word) > 0){
-            insert(root.right, data);
-        }
     }
 
     public static void nestedLoop(){
@@ -38,7 +25,7 @@ class test {
 
     public static void branchTesting(){
         int strLength = 1;
-        if (true)
+        if (false)
         {
             return ;
         }
@@ -63,13 +50,12 @@ class test {
                 }
 
             }
-            if (1 > 3 && One() && Two())
+            if (One() && Two())
             {
                 Six();
                 if (true){
                     return;
                 }
-
             }
 
 

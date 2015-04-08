@@ -4,7 +4,7 @@ import pyglet
 
 class DataView():
     initial_x = 75
-    initial_y = 240
+    initial_y = 80
     max_nodes_in_row = 7
     x_increment = 125
 
@@ -125,7 +125,7 @@ class DataView():
                               y = 0,
                               anchor_y = 'center',
                               anchor_x= 'center',
-                              color= (255, 252, 31, 255) if self.highlighted else (255, 255, 255, 255)
+                              color= (30, 255, 7, 255) if self.highlighted else (255, 255, 255, 255)
             ).draw()
 
             pyglet.gl.glTranslatef(-50, 0, 0)
