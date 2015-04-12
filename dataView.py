@@ -12,7 +12,7 @@ class DataView():
         self.objects = []
         self.parsed = parsed
 
-    def draw(self, window):
+    def draw(self):
         for obj in self.objects:
             obj.draw()
 
@@ -56,6 +56,13 @@ class DataView():
     class Object():
         width = 114
         height = 50
+        node_vertices = pyglet.graphics.vertex_list_indexed(4,
+                                    [0, 1, 2, 0, 2, 3],
+                                    ('v3i', (-57, -25, 0,
+                                            57, -25, 0,
+                                            57, 25, 0,
+                                            -57, 25, 0)),
+                                    ('c3B', (115, 83, 140) * 4))
 
         def __init__(self, param, field_array, x, y):
             self.x = x
@@ -104,16 +111,7 @@ class DataView():
             obj_height = 1 + 0.2 * len(self.members)
             pyglet.gl.glScalef(1, obj_height, 1)
 
-            #Draw Object representation
-            node_vertices = pyglet.graphics.vertex_list_indexed(4,
-                                    [0, 1, 2, 0, 2, 3],
-                                    ('v3i', (-57, -25, 0,
-                                            57, -25, 0,
-                                            57, 25, 0,
-                                            -57, 25, 0)),
-                                    ('c3B', (115, 83, 140) * 4))
-
-            node_vertices.draw(pyglet.gl.GL_TRIANGLES)
+            self.node_vertices.draw(pyglet.gl.GL_TRIANGLES)
 
             pyglet.gl.glPopMatrix()
             pyglet.gl.glTranslatef(self.x, self.y, 0)

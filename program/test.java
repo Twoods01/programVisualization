@@ -13,9 +13,9 @@ class test {
     public static void nestedLoop(){
         int i = 0;
         int j = 0;
-        while(i < 10){
+        while(i < 2){
             One();
-            while(j < 10){
+            while(j < 3){
                 Two();
                 j++;
             }

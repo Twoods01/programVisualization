@@ -906,20 +906,23 @@ class IfThenElse(Statement):
             if self.if_false is not None:
                 self.if_false.accept(visitor)
 
-    def get_branch_numbers(self):
+    def get_branch_numbers(self, in_body=False):
         additional_branches = []
 
         #First find any branches in the true block
         for statement in self.if_true:
             if is_visual_branch(statement):
-                additional_branches.extend(statement.get_branch_numbers())
+                additional_branches.extend(statement.get_branch_numbers(True))
 
         #Next mark the else branch
         #A line number of -1 will represent invisible nodes
         if self.if_false is None:
             additional_branches.append(-1)
         elif is_branch(self.if_false):
-            additional_branches.extend([-1] + self.if_false.get_branch_numbers() + [-1])
+            additional_branches.extend([-1] + self.if_false.get_branch_numbers())
+            #If this is an if/else inside the body of another if/else then it needs an additional invisible node
+            if in_body:
+                additional_branches.append(-1)
         else:
             additional_branches.append(self.if_false_line_num)
 
@@ -927,7 +930,7 @@ class IfThenElse(Statement):
         if type(self.if_false) is Block:
             for statement in self.if_false:
                 if is_visual_branch(statement):
-                    additional_branches.extend(statement.get_branch_numbers())
+                    additional_branches.extend(statement.get_branch_numbers(True))
 
 
         return [self.line_num] + additional_branches
@@ -1085,6 +1088,8 @@ class While(Statement):
         for statement in self.body:
             if is_visual_branch(statement):
                 branches.extend(statement.get_branch_numbers())
+                if is_loop(statement):
+                    branches.append(-1)
 
         return branches
 
@@ -1164,6 +1169,8 @@ class For(Statement):
         for statement in self.body:
             if is_visual_branch(statement):
                 branches.extend(statement.get_branch_numbers())
+                if is_loop(statement):
+                    branches.append(-1)
 
         return branches
 

@@ -10,7 +10,6 @@ System.out.println("push main test " + Thread.currentThread().getId());
         int num = addNumbersInString(numString);
         System.out.println(num);
         nothing();
-System.out.println("branch 1");
 System.out.println("pop main test " + Thread.currentThread().getId());
     }
 
@@ -18,17 +17,17 @@ System.out.println("pop main test " + Thread.currentThread().getId());
 System.out.println("push nestedLoop test " + Thread.currentThread().getId());
         int i = 0;
         int j = 0;
-        while(i < 10){
+        while(i < 2){
 System.out.println("branch 2");
             One();
-            while(j < 10){
+            while(j < 3){
 System.out.println("branch 4");
                 Two();
                 j++;
             }
             i++;
         }
-System.out.println("branch 5");
+System.out.println("branch 6");
 System.out.println("pop nestedLoop test " + Thread.currentThread().getId());
     }
 
@@ -190,6 +189,7 @@ System.out.println("branch 9");
 System.out.println("branch 11");
             test();
         }
+System.out.println("branch 13");
         test();
 String __TEMP_VAR__ = "Hi";
 System.out.println("pop recursiveString test " + Thread.currentThread().getId());
@@ -218,6 +218,7 @@ System.out.println("push addNumbersInString test " + Thread.currentThread().getI
 System.out.println("branch 2");
             sum = addNumbers(sum, Character.getNumericValue(s.charAt(i)));
         }
+System.out.println("branch 3");
 int __TEMP_VAR__ = sum;
 System.out.println("pop addNumbersInString test " + Thread.currentThread().getId());
 return __TEMP_VAR__;
@@ -237,7 +238,6 @@ System.out.println("pop nothing test " + Thread.currentThread().getId());
     public static void test(){
 System.out.println("push test test " + Thread.currentThread().getId());
         System.out.println("Hello");
-System.out.println("branch 1");
 System.out.println("pop test test " + Thread.currentThread().getId());
     }
 }

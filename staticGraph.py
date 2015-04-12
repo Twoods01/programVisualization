@@ -6,12 +6,11 @@ from graphInterface import *
 from model import MethodDeclaration, MethodInvocation
 from stack import *
 import dataView as dv
-import arrayUtils
+import arrayUtils, animationDot
 
 
 standard_color = (158, 136, 124)
 path_highlight = (250, 255, 41)
-active_color = (13, 136, 204)
 library_method_color = (200, 73, 38)
 
 horizontal_buffer = 35
@@ -36,6 +35,7 @@ class StaticGraph(graphInterface):
         self.active_node = None
         self.animation_path = []
         self.auto_play = False
+        self.dot = animationDot.AnimationDot(self.animation_forward, self.update_active_node)
         self.frames = 0
 
         #Array of MethodDeclarations
@@ -53,19 +53,11 @@ class StaticGraph(graphInterface):
         self.invis_node = None
 
         self.place_nodes(window)
+        self.dot.place(self.nodes[0][0].x, self.nodes[0][0].y)
+        self.animation_path.append(self.nodes[0][1])
+        self.animation_path.append(self.nodes[0][2])
 
-    def draw(self, window, cam):
-
-        #Move forward on the animation path if necessary
-        if len(self.animation_path) > 0 and self.frames >= self.frames_per_node:
-            self.active_node = self.animation_path[0]
-            del self.animation_path[0]
-            self.frames = 0
-        #Nothing more to animate, determine next animation step
-        elif self.auto_play and self.frames >= self.frames_per_node:
-            self.step_forward()
-            self.frames = 0
-
+    def draw(self, cam):
         #For animation, center the camera on the active node
         if self.auto_play:
             cam.center_on(self.active_node)
@@ -81,12 +73,16 @@ class StaticGraph(graphInterface):
         #Draw all nodes
         for branch in self.nodes:
             for node in branch:
-                if node == self.active_node:
-                    node.draw(active_color)
-                elif node.method.name in map(lambda x: x.name, self.methods):
-                    node.draw(standard_color)
+                if node.method.name in map(lambda x: x.name, self.methods):
+                    if node == self.active_node:
+                        node.draw(standard_color, self.dot.draw)
+                    else:
+                        node.draw(standard_color)
                 else:
-                    node.draw(library_method_color)
+                    if node == self.active_node:
+                        node.draw(library_method_color, self.dot.draw)
+                    else:
+                        node.draw(library_method_color)
 
         #If mousing over data, show connections to all usages
         if self.invis_node:
@@ -101,9 +97,9 @@ class StaticGraph(graphInterface):
         self.frames += 1
 
 
-    def draw_UI(self, window):
+    def draw_UI(self):
         self.stack.draw()
-        self.data.draw(window)
+        self.data.draw()
 
     def place_nodes(self, window):
         self.nodes = []
@@ -157,12 +153,38 @@ class StaticGraph(graphInterface):
         while self.cur_branch_index < len(self.nodes[self.cur_branch]) and \
                         self.nodes[self.cur_branch][self.cur_branch_index].method.name != method_to_find:
 
-            self.animation_path.append(self.nodes[self.cur_branch][self.cur_branch_index])
+            #Add the node to the path as long as it's not a manually added start node
+            new_node = self.nodes[self.cur_branch][self.cur_branch_index]
+            if new_node.method.name != "Start" and new_node != self.active_node:
+                self.animation_path.append(new_node)
             #If we've hit a return then stop
             if self.nodes[self.cur_branch][self.cur_branch_index].method.name == "Return":
                 break
             self.cur_branch_index += 1
 
+    def update_active_node(self, node):
+        self.active_node = node
+        del self.animation_path[0]
+
+    #Move the animation forward to the next node, called from main when spacebar pressed
+    # and callback from animation_dot when it needs a new target
+    def animation_forward(self):
+        #Autoplay not set, stop animation
+        if not self.auto_play:
+            return
+
+        #Nothing more on current path, update path
+        if len(self.animation_path) == 0:
+            self.step_forward()
+
+        #If after a step forward the length is still 0 we've reached the end
+        if len(self.animation_path) == 0:
+            return
+
+        #Give animation_dot it's next target
+        self.dot.set_destination(self.animation_path[0])
+
+    #Find the next method push from |flow|, this can lead to multiple animation_forwards
     def step_forward(self):
         #If we havent finished the current animation then ignore this call
         if len(self.animation_path) > 0:
@@ -191,7 +213,6 @@ class StaticGraph(graphInterface):
                     break
 
 
-
         #We've gone past the end of the file
         except IndexError:
             #Set active node to last node
@@ -203,7 +224,9 @@ class StaticGraph(graphInterface):
             if new_branch:
                 self.cur_branch = new_branch
                 self.cur_branch_index = 0
-            self.animation_path.extend(self.nodes[self.cur_branch][self.cur_branch_index:])
+                self.animation_path.extend(self.nodes[self.cur_branch][self.cur_branch_index:])
+            else:
+                self.animation_path.extend(self.nodes[self.cur_branch][self.cur_branch_index + 1:])
 
         else:
             #Branch hasn't changed and there's more nodes in this branch
@@ -248,6 +271,16 @@ class StaticGraph(graphInterface):
                 #Get everything remaining from current branch
                 self.handle_non_user_methods_in_current_branch("")
 
+                #We may have jumped through some invisible nodes along the way
+                while not new_branch in self.nodes[self.cur_branch][-1].child_branches:
+                    #Get the branch number for the invisible branch we took
+                    invis_node_branch = self.nodes[self.cur_branch][-1].child_branches[1]
+                    #Add the invisible node
+                    self.animation_path.append(self.nodes[invis_node_branch][0])
+
+                    #Follow the invisible branch to it's child
+                    self.cur_branch = invis_node_branch
+
                 #Update current branch
                 self.cur_branch = new_branch
                 self.cur_branch_index = 0
@@ -261,7 +294,6 @@ class StaticGraph(graphInterface):
 
             #Jump ahead to when the method we just entered gets popped
             self.cur_index = self.find_corresponding_pop(next_method_print[1], next_method_print[2])
-
         return
 
     #Recursively chains branched_node_array together, returns the parents of the previous branch
@@ -338,7 +370,7 @@ class StaticGraph(graphInterface):
                     if break_flag or parent.method.name != "Break":
                         node.add_parent(parent)
 
-                        if parent.method.name == "InvisibleNode":
+                        if parent.method.name == "InvisibleNode" and node.method.name != "InvisibleNode":
                             parent.add_branch(branch_num + 1)
                         else:
                             parent.add_branch(branch_num)
@@ -442,6 +474,18 @@ class StaticGraph(graphInterface):
             print("branch " + str(i) + " is " + str(map(lambda x: x.method.name, branch)))
             map(lambda x: x.write(), branch)
 
+    def enter_new_method(self, node, cam, window, entering):
+        self.current = node
+        if entering:
+            self.stack.append(node)
+        else:
+            self.stack.pop_to(node)
+        self.data.add_params(node.method.parameters)
+        cam.reset()
+        self.place_nodes(window)
+        self.animation_path = []
+        self.dot.place(self.nodes[0][0].x, self.nodes[0][0].y)
+
 
     def handle_input(self, x, y, cam, window):
 
@@ -450,18 +494,10 @@ class StaticGraph(graphInterface):
                 if node.hit(x, y, cam.x, cam.y):
                     method = filter(lambda x: x.name == node.method.name, self.methods)
                     if len(method) > 0:
-                        self.current = Node(method[0])
-                        self.data.add_params(method[0].get_data())
-                        self.stack.append(self.current)
-                        cam.reset()
-                        self.place_nodes(window)
+                        self.enter_new_method(Node(method[0]), cam, window, True)
                     return
 
         node = self.stack.get_clicked_item(x, y)
 
         if node is not None:
-            self.current = node
-            self.stack.pop_to(node)
-            self.data.add_params(node.method.parameters)
-            cam.reset()
-            self.place_nodes(window)
+            self.enter_new_method(node, cam, window, False)

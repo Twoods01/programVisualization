@@ -117,11 +117,13 @@ class Javap:
 
 
                     return_index = 0
+                    previous_was_branch = False
                     #We need to insert all lines, branches and returns, in order, in one pass
                     for statement in method.body:
                         #If the statement is a branch it has branch_line_nums, an array of line numbers marking
                         # the start of each branch it produces
                         if m.is_visual_branch(statement):
+                            previous_was_branch = True
                             for line in statement.branch_line_nums:
                                 #Make sure we've put all returns which come before this line
                                 while returns[return_index].line_num < line and return_index < len(returns) - 1:
@@ -130,15 +132,20 @@ class Javap:
 
                                 inserted_lines, branch_num = self.add_branch_print(file_data, line, inserted_lines, branch_num)
 
+                        elif previous_was_branch:
+                            previous_was_branch = False
+                            inserted_lines, branch_num = self.add_branch_print(file_data, statement.line_num, inserted_lines, branch_num)
+
                     #Make sure we've printed every return
                     while return_index < len(returns):
                         inserted_lines = self.add_return_print(file_data, returns[return_index], inserted_lines, return_type, method.name, class_name)
                         return_index += 1
 
-                    #If we had to manually insert a "return" we also have to manually insert the last branch
+                    #If we had to manually insert a "return" we may have to manually insert the last branch
                     if ((builtin.type(method) is m.ConstructorDeclaration) or (builtin.type(method) is m.MethodDeclaration))\
                             and builtin.type(method.body[-1]) is not m.Return:
-                        inserted_lines, branch_num = self.add_branch_print(file_data, method.end_line_num - 1, inserted_lines, branch_num)
+                        if m.is_visual_branch(method.body[-1]):
+                            inserted_lines, branch_num = self.add_branch_print(file_data, method.end_line_num - 1, inserted_lines, branch_num)
 
             for line in file_data:
                 file.write(line)

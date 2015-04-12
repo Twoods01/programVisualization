@@ -61,11 +61,11 @@ def main(argv):
         pyglet.clock.tick()
         window.clear()
         cam.standard_projection()
-        graph.draw(window, cam)
+        graph.draw(cam)
         cam.hud_projection()
-        graph.draw_UI(window)
-        if visualization.isDynamic:
-            draw_UI(window)
+        graph.draw_UI()
+        # if visualization.isDynamic:
+        #     draw_UI(window)
         fps_display.draw()
 
 
@@ -118,6 +118,7 @@ def main(argv):
                 graph.invis_node.x += 50
         elif symbol == pyglet.window.key.SPACE:
             graph.auto_play = not graph.auto_play
+            graph.animation_forward()
 
     @window.event
     def on_mouse_motion(x, y, dx, dy):

@@ -47,8 +47,10 @@ class Node:
         self.y = y
 
     #Draw the node with the given color
-    def draw(self, color):
+    def draw(self, color, additional_draw_task=None):
         if not self.visible:
+            if additional_draw_task != None:
+                additional_draw_task()
             return
 
         pyglet.gl.glPushMatrix()
@@ -64,6 +66,12 @@ class Node:
                                             -57, 35, 0)),
                                     ('c3B', (color[0], color[1], color[2]) * 4))
         node_vertices[color].draw(pyglet.gl.GL_TRIANGLES)
+
+        if additional_draw_task != None:
+            pyglet.gl.glPopMatrix()
+            additional_draw_task()
+            pyglet.gl.glPushMatrix()
+            pyglet.gl.glTranslatef(self.x, self.y, 0)
 
         #Label it with method name
         pyglet.text.Label(self.method.name + "()",
