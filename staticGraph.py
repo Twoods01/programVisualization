@@ -65,10 +65,16 @@ class StaticGraph(graphInterface):
         #Connect(draw edges) all nodes
         for branch in self.nodes:
             for node in branch:
-                if node in self.animation_path:
-                    node.connect(path_highlight)
-                else:
-                    node.connect()
+                for p in node.parents:
+                    if (node in self.animation_path or node == self.active_node)\
+                            and (p in self.animation_path or p == self.active_node):
+                        node.draw_edge(p, path_highlight)
+                    else:
+                        node.draw_edge(p)
+                # if node in self.animation_path:
+                #     node.connect(path_highlight)
+                # else:
+                #     node.connect()
 
         #Draw all nodes
         for branch in self.nodes:
@@ -291,7 +297,6 @@ class StaticGraph(graphInterface):
 
             #Add the actual method
             self.animation_path.append(self.nodes[self.cur_branch][self.cur_branch_index])
-
             #Jump ahead to when the method we just entered gets popped
             self.cur_index = self.find_corresponding_pop(next_method_print[1], next_method_print[2])
         return

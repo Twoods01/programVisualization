@@ -108,3 +108,11 @@ class Node:
                                 ('v2i', (self.x, self.y,
                                          p.x, p.y)),
                                 ('c3B', (color[0], color[1], color[2]) * 2))
+
+
+    def draw_edge(self, node, color=[255, 255, 255]):
+        pyglet.gl.glLineWidth(3)
+        pyglet.graphics.draw(2, pyglet.gl.GL_LINES,
+                                ('v2i', (self.x, self.y,
+                                         node.x, node.y)),
+                                ('c3B', (color[0], color[1], color[2]) * 2))
