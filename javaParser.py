@@ -124,35 +124,45 @@ class Javap:
                         # the start of each branch it produces
                         if m.is_visual_branch(statement):
                             previous_was_branch = True
+
                             for line in statement.branch_line_nums:
                                 #Make sure we've put all returns which come before this line
                                 while returns[return_index].line_num < line and return_index < len(returns) - 1:
                                     inserted_lines = self.add_return_print(file_data, returns[return_index], inserted_lines, return_type, method.name, class_name)
                                     return_index += 1
 
-                                inserted_lines, branch_num = self.add_branch_print(file_data, line, inserted_lines, branch_num)
+                                inserted_lines, branch_num, return_index = \
+                                    self.add_branch_print(file_data, line, inserted_lines, branch_num, returns,
+                                                          return_index, return_type, method.name, class_name)
 
                         elif previous_was_branch:
                             previous_was_branch = False
-                            inserted_lines, branch_num = self.add_branch_print(file_data, statement.line_num, inserted_lines, branch_num)
+                            inserted_lines, branch_num, return_index = \
+                                self.add_branch_print(file_data, statement.line_num, inserted_lines, branch_num,
+                                                      returns, return_index, return_type, method.name, class_name)
 
                     #Make sure we've printed every return
                     while return_index < len(returns):
-                        inserted_lines = self.add_return_print(file_data, returns[return_index], inserted_lines, return_type, method.name, class_name)
+                        inserted_lines = self.add_return_print(file_data, returns[return_index],
+                                                               inserted_lines, return_type, method.name, class_name)
                         return_index += 1
 
                     #If we had to manually insert a "return" we may have to manually insert the last branch
                     if ((builtin.type(method) is m.ConstructorDeclaration) or (builtin.type(method) is m.MethodDeclaration))\
                             and builtin.type(method.body[-1]) is not m.Return:
                         if m.is_visual_branch(method.body[-1]):
-                            inserted_lines, branch_num = self.add_branch_print(file_data, method.end_line_num - 1, inserted_lines, branch_num)
+                            inserted_lines, branch_num, return_index = \
+                                self.add_branch_print(file_data, method.end_line_num - 1, inserted_lines, branch_num,
+                                                      returns, return_index, return_type, method.name, class_name)
 
             for line in file_data:
                 file.write(line)
 
             file.close()
 
-    def add_branch_print(self, file_data, line, inserted_lines, branch_num):
+    def add_branch_print(self, file_data, line, inserted_lines, branch_num, returns, return_index, return_type, method_name, class_name):
+        return_in_non_block = False
+        non_block = False
         #line numbers of -1 represent invisible nodes, don't have a print for them, but need to
         # increment branch_num
         if line > 0:
@@ -161,13 +171,50 @@ class Javap:
             #{
             if file_data[line + inserted_lines].lstrip() == "{\n":
                 line -= 1
+            #Verify we're in a block
+            else:
+                i = 0
+                while True:
+                    cur_line = file_data[line + inserted_lines - i]
+                    if len(cur_line.lstrip()) > 1:
+                        if "{" in cur_line:
+                            break
+                        elif cur_line.lstrip().startswith("if(") or cur_line.lstrip().startswith("if ("):
+
+                            #Check if the statement in this non-block if is a return, will need to handle it
+                            # specially
+                            if file_data[line + inserted_lines - i + 1].lstrip().startswith("return"):
+                                return_in_non_block = True
+                            else:
+                                non_block = True
+
+                            #Add {} around the if
+                            file_data[line + inserted_lines - i] = cur_line.rstrip() + "{\n"
+                            file_data.insert(line + inserted_lines - i + 2, "}")
+                            line -= i - 1
+                            break
+
+                    i += 1
 
             file_data.insert(line + inserted_lines,
                              'System.out.println("branch ' + str(branch_num) + '");\n')
             inserted_lines += 1
+
+            #Special case for return statement in an originally non-block if
+            if return_in_non_block:
+
+                returns[return_index].line_num -= i - 1
+                inserted_lines = self.add_return_print(file_data, returns[return_index],
+                                                       inserted_lines, return_type, method_name, class_name)
+                return_index += 1
+                inserted_lines += 1
+            #Extra line needed for non_block ifs
+            elif non_block:
+                inserted_lines += 1
+
         branch_num += 1
 
-        return inserted_lines, branch_num
+        return inserted_lines, branch_num, return_index
 
     def add_return_print(self, file_data, ret, inserted_lines, return_type, method_name, class_name):
         #If this return is actually a return and not void

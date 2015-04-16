@@ -910,9 +910,10 @@ class IfThenElse(Statement):
         additional_branches = []
 
         #First find any branches in the true block
-        for statement in self.if_true:
-            if is_visual_branch(statement):
-                additional_branches.extend(statement.get_branch_numbers(True))
+        if type(self.if_true) is Block:
+            for statement in self.if_true:
+                if is_visual_branch(statement):
+                    additional_branches.extend(statement.get_branch_numbers(True))
 
         #Next mark the else branch
         #A line number of -1 will represent invisible nodes
@@ -1144,11 +1145,14 @@ class While(Statement):
         invocations.append(MethodInvocation("repeat"))
         invocations.append(MethodInvocation("loopEnd"))
 
+        #au.print_nested(invocations)
+        #au.print_nested(invocations.append([MethodInvocation("InvisibleNode")]))
+        #invocations = [invocations, [MethodInvocation("InvisibleNode")]]
+        #au.print_nested(invocations)
         return invocations
 
 
 class For(Statement):
-
     def __init__(self, init, predicate, update, body, line_num, end_line_num):
         super(For, self).__init__()
         self._fields = ['init', 'predicate', 'update', 'body']

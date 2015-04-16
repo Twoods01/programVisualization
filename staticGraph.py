@@ -107,6 +107,7 @@ class StaticGraph(graphInterface):
         self.stack.draw()
         self.data.draw()
 
+    #Determines x/y coordinates to place nodes at and seeks cur_index to the proper location
     def place_nodes(self, window):
         self.nodes = []
 
@@ -168,6 +169,7 @@ class StaticGraph(graphInterface):
                 break
             self.cur_branch_index += 1
 
+    #Callback used by animation dots
     def update_active_node(self, node):
         self.active_node = node
         del self.animation_path[0]
@@ -329,6 +331,7 @@ class StaticGraph(graphInterface):
             #For every path in this branch
             for branch in branched_node_array[0]:
                 #Recurse on the path, store the returned final_node and add it to our new parent set
+                arrayUtils.print_nested(branch)
                 final_nodes_in_branch, branch_num = self.chain_nodes(branch, parent_nodes, x, y, branch_num + 1)
                 #Filter out nodes with method name Return, as this stops execution
                 new_parents.extend(filter(lambda x: x.method.name != "Return", arrayUtils.flatten(final_nodes_in_branch)))
@@ -490,6 +493,7 @@ class StaticGraph(graphInterface):
         self.place_nodes(window)
         self.animation_path = []
         self.dot.place(self.nodes[0][0].x, self.nodes[0][0].y)
+        print(self.flow[self.cur_index:])
 
 
     def handle_input(self, x, y, cam, window):
