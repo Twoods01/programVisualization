@@ -18,9 +18,10 @@ def timeout(process):
 
 class Javap:
 
-    def __init__(self, dir):
+    def __init__(self, dir, args):
         p = parser.Parser()
         self.dir = dir
+        self.args = args
         self.files = {}
         #Get all files in dir
         for (dirpath, dirnames, filenames) in walk(self.dir):
@@ -256,7 +257,7 @@ class Javap:
                 print(line)
 
         #Run the file
-        java = subprocess.Popen("java -cp " + classpath + " " + file_array[-1].replace(".java", ""),
+        java = subprocess.Popen("java -cp " + classpath + " " + file_array[-1].replace(".java", "") + " " + self.args,
           shell=True,
           stdout=subprocess.PIPE)
 
@@ -364,8 +365,7 @@ class Javap:
                 if len(method_in_pred) != 0:
                     branch_array.extend(method_in_pred)
 
-            #if user_methods_this_statement != set():
-            if type(statement) is m.IfThenElse or type(statement) is m.Try:
+            if type(statement) is m.IfThenElse or type(statement) is m.Try or m.is_loop(statement):
                 branch_array.append(statement.get_method_invocations())
             else:
                 branch_array.extend(methods_this_statement)

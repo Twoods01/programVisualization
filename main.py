@@ -26,6 +26,7 @@ def main(argv):
 
     directory = "program"
     visualization = StaticGraph
+    args = "test"
     timeout = None
     processing = True
 
@@ -43,14 +44,14 @@ def main(argv):
     window = pyglet.window.Window(1200, 700)
     cam = camera.Camera(window.width, window.height)
 
-    parsed = Javap(directory)
+    parsed = Javap(directory, args)
     global graph
     if visualization.isDynamic:
         parsed.markup_file()
         graph = visualization(parsed.run_file(processing, timeout), parsed.get_all_methods())
     else:
         parsed.markup_file()
-        graph = visualization(parsed, window)
+        graph = visualization(parsed, window, cam)
 
     #parsed.cleanup()
 
@@ -119,6 +120,8 @@ def main(argv):
         elif symbol == pyglet.window.key.SPACE:
             graph.auto_play = not graph.auto_play
             graph.animation_forward()
+        elif symbol == pyglet.window.key.RSHIFT or symbol == pyglet.window.key.LSHIFT:
+            graph.dot.step_into = not graph.dot.step_into
 
     @window.event
     def on_mouse_motion(x, y, dx, dy):

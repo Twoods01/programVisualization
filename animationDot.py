@@ -1,10 +1,12 @@
 __author__ = 'twoods0129'
 import pyglet, node
+from time import sleep
 
 class AnimationDot:
     move_steps = 10
     scale_steps = 10
     min_width = 25
+    wait_frames = 20
     max_width = node.node_width
     width_inc = (max_width - min_width) / scale_steps
 
@@ -12,7 +14,8 @@ class AnimationDot:
     max_height = node.node_height
     height_inc = (max_height - min_height) / scale_steps
 
-    color = (13, 136, 204)
+    step_over_color = (64, 74, 110)
+    step_in_color = (136, 140, 62)
 
     def __init__(self, new_target_callback, update_active_node_callback):
         #X/y position
@@ -29,6 +32,8 @@ class AnimationDot:
         #The target node we are going for
         self.target = None
 
+
+        self.step_into = True
         #Methods to call when we need a new target, and when we need to update the currently active node
         self.new_target_callback = new_target_callback
         self.update_active_node_callback = update_active_node_callback
@@ -39,9 +44,14 @@ class AnimationDot:
         self.width = AnimationDot.max_width
         self.height = AnimationDot.max_height
 
+        self.wait_frames = 0
+
     def place(self, x, y):
         self.x = x
         self.y = y
+
+    def wait(self, frames):
+        self.wait_frames = 20
 
     def set_destination(self, node):
         self.target = node
@@ -50,7 +60,7 @@ class AnimationDot:
 
         self.reached_target = False
         self.has_target = True
-        self.movement_frames = 0
+        self.movement_frames = -1
 
     def shrink(self):
         self.width -= AnimationDot.width_inc
@@ -76,6 +86,11 @@ class AnimationDot:
         self.height += AnimationDot.height_inc
 
     def draw(self):
+        if self.wait_frames >= 0:
+            if self.wait_frames == 0:
+                self.new_target_callback(False)
+            self.wait_frames -= 1
+
         if self.has_target:
             #Shrink until we reach minimum size
             if self.width > AnimationDot.min_width and not self.reached_target:
@@ -93,6 +108,11 @@ class AnimationDot:
 
         pyglet.gl.glPushMatrix()
         pyglet.gl.glTranslatef(self.x, self.y, 0)
+        if self.step_into:
+            color = AnimationDot.step_in_color
+        else:
+            color = AnimationDot.step_over_color
+
 
         node_vertices = pyglet.graphics.vertex_list_indexed(4,
                                     [0, 1, 2, 0, 2, 3],
@@ -100,7 +120,7 @@ class AnimationDot:
                                             self.width / 2, -self.height / 2, 0,
                                             self.width / 2, self.height / 2, 0,
                                             -self.width / 2, self.height / 2, 0)),
-                                    ('c3B', AnimationDot.color * 4))
+                                    ('c3B', color * 4))
 
         node_vertices.draw(pyglet.gl.GL_TRIANGLES)
 

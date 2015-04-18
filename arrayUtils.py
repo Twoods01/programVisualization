@@ -39,7 +39,6 @@ def all_nested(x):
 def add_to_array_preserve_nesting(arr, new):
     #Check if there were any method calls this statement
     if len(new) > 0:
-
         #If method calls were nested, preserve nesting
         if is_nested(new):
 

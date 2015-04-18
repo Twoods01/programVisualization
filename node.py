@@ -27,6 +27,11 @@ class Node:
         #x,y location on screen
         self.x = -1
         self.y = -1
+
+        #Branch and index of this node
+        self.branch = 0
+        self.index = 0
+
         #The method which this node represents
         self.method = method
         self.radius = init_radius
@@ -101,7 +106,7 @@ class Node:
                and y > self.y - camy - y_offset and y < self.y + node_height - camy - y_offset
 
     #Connect current node to |node|
-    def connect(self, color=[255, 255, 255]):
+    def connect(self, color=[237, 255, 228]):
         pyglet.gl.glLineWidth(3)
         for p in self.parents:
             pyglet.graphics.draw(2, pyglet.gl.GL_LINES,

@@ -62,7 +62,7 @@ class DataView():
                                             57, -25, 0,
                                             57, 25, 0,
                                             -57, 25, 0)),
-                                    ('c3B', (115, 83, 140) * 4))
+                                    ('c3B', (197, 93, 204) * 4))
 
         def __init__(self, param, field_array, x, y):
             self.x = x

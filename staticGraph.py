@@ -7,11 +7,12 @@ from model import MethodDeclaration, MethodInvocation
 from stack import *
 import dataView as dv
 import arrayUtils, animationDot
+from time import sleep
 
 
-standard_color = (158, 136, 124)
-path_highlight = (250, 255, 41)
-library_method_color = (200, 73, 38)
+standard_color = (204, 127, 93)
+path_highlight = (64, 76, 255)
+library_method_color = (200, 79, 26)
 
 horizontal_buffer = 35
 vertical_buffer = 30
@@ -20,7 +21,7 @@ class StaticGraph(graphInterface):
     isDynamic = False
     frames_per_node = 10
 
-    def __init__(self, parsed, window):
+    def __init__(self, parsed, window, cam):
         self.stack = Stack(window)
         #All parsed data
         self.parsed = parsed
@@ -52,6 +53,8 @@ class StaticGraph(graphInterface):
         #Invisible node which we can place underneath data to connect them to other methods
         self.invis_node = None
 
+        self.cam = cam
+        self.window = window
         self.place_nodes(window)
         self.dot.place(self.nodes[0][0].x, self.nodes[0][0].y)
         self.animation_path.append(self.nodes[0][1])
@@ -102,22 +105,26 @@ class StaticGraph(graphInterface):
 
         self.frames += 1
 
-
     def draw_UI(self):
         self.stack.draw()
         self.data.draw()
 
     #Determines x/y coordinates to place nodes at and seeks cur_index to the proper location
-    def place_nodes(self, window):
+    def place_nodes(self, window, in_animation=False):
         self.nodes = []
 
         x = 75
         y = window.height / 2
         self.chain_nodes(self.parsed.get_method_invocations_in_method(self.current.method), None, x, y, 0)
-        self.active_node = self.nodes[0][0]
-        self.cur_branch = self.cur_branch_index = 0
 
-        self.cur_index = self.find_in_flow("push " + self.current.method.name)
+        if in_animation:
+            self.cur_index += 0
+        else:
+            self.cur_branch = self.cur_branch_index = 0
+            self.cur_index = self.find_in_flow("push " + self.current.method.name)
+
+        print("Setting active to branch " + str(self.cur_branch) + " index " + str(self.cur_branch_index))
+        self.active_node = self.nodes[self.cur_branch][self.cur_branch_index]
 
     #Find the first occurence of this string in flow and return that index
     def find_in_flow(self, string):
@@ -176,7 +183,7 @@ class StaticGraph(graphInterface):
 
     #Move the animation forward to the next node, called from main when spacebar pressed
     # and callback from animation_dot when it needs a new target
-    def animation_forward(self):
+    def animation_forward(self, enter_method=True):
         #Autoplay not set, stop animation
         if not self.auto_play:
             return
@@ -187,14 +194,38 @@ class StaticGraph(graphInterface):
 
         #If after a step forward the length is still 0 we've reached the end
         if len(self.animation_path) == 0:
-            return
+            if self.dot.step_into:
+                print("Stepping out")
+                frame = self.stack.get_frame_after_pop()
+
+                self.enter_new_method(frame.node, self.cam, self.window, False, True)
+                self.dot.wait(animationDot.AnimationDot.wait_frames)
+                return
+            else:
+                return
+
+        print("Computed path " + str(map(lambda x: x.method.name, self.animation_path)))
+        #If set to step into may have to take extra action
+        if self.dot.step_into and enter_method:
+            method = filter(lambda x: x.name == self.active_node.method.name, self.methods)
+            #Currently on a user method, need to enter this method
+            if len(method) > 0:
+
+                print("Stepping in!")
+                if self.cur_branch_index > 0:
+                    self.cur_branch_index -= 1
+                self.enter_new_method(Node(method[0]), self.cam, self.window, True)
+
+                self.dot.wait(animationDot.AnimationDot.wait_frames)
+                return
+
 
         #Give animation_dot it's next target
         self.dot.set_destination(self.animation_path[0])
 
     #Find the next method push from |flow|, this can lead to multiple animation_forwards
     def step_forward(self):
-        #If we havent finished the current animation then ignore this call
+        #If we haven't finished the current animation then ignore this call
         if len(self.animation_path) > 0:
             return
         #If we're already done with this method then ignore this call
@@ -227,12 +258,24 @@ class StaticGraph(graphInterface):
             self.active_node = self.nodes[-1][-1]
             return
 
-        #If we exited the method, add everything left in the current branch
+        #We exited the method
         if exited_method:
+            #Changed branches need to find path
             if new_branch:
-                self.cur_branch = new_branch
-                self.cur_branch_index = 0
-                self.animation_path.extend(self.nodes[self.cur_branch][self.cur_branch_index:])
+                while self.cur_branch != new_branch:
+                    #Anything remaining in current branch
+                    self.handle_non_user_methods_in_current_branch("")
+                    #Follow bottom branch out of this branch
+                    self.nodes[self.cur_branch][self.cur_branch_index - 1].write()
+                    if self.nodes[self.cur_branch][self.cur_branch_index - 1].child_branches[0] == new_branch:
+                        self.cur_branch = self.nodes[self.cur_branch][self.cur_branch_index - 1].child_branches[0]
+                    else:
+                        self.cur_branch = self.nodes[self.cur_branch][self.cur_branch_index - 1].child_branches[-1]
+                    self.cur_branch_index = 0
+
+                #Everything in the final branch
+                self.handle_non_user_methods_in_current_branch("")
+            #Haven't changed branches add everything left in the current branch
             else:
                 self.animation_path.extend(self.nodes[self.cur_branch][self.cur_branch_index + 1:])
 
@@ -262,27 +305,40 @@ class StaticGraph(graphInterface):
             #Branch changed
             #If the new branch is smaller then we went backwards in the file, aka a loop
             elif new_branch <= self.cur_branch:
-                self.cur_branch = new_branch
-                back_branch_node = self.nodes[self.cur_branch - 1][0]
-                #Get the repeat node, it is the first node in this nodes child branch
+                back_branch_node = self.nodes[new_branch - 1][0]
+
+                #Find the path which leads to a node who has a parent which is the back_branch_node
+                while not back_branch_node in self.nodes[self.cur_branch][self.cur_branch_index].parents:
+                    #Anything remaining in current branch
+                    self.handle_non_user_methods_in_current_branch("")
+                    self.cur_branch = self.nodes[self.cur_branch][self.cur_branch_index - 1].child_branches[0]
+                    self.cur_branch_index = 0
+
+                # #Get the repeat node, it is the first node in this nodes child branch
                 self.animation_path.append(self.nodes[back_branch_node.child_branches[0]][0])
 
+                self.cur_branch = new_branch
                 #Get the back edge, it should always be the previous branch
                 self.animation_path.append(back_branch_node)
 
                 #Get the loop start, it should always be the last node 2 branches prior
                 self.animation_path.append(self.nodes[self.cur_branch - 2][-1])
 
-
             #Standard new forward branch
             elif new_branch > self.cur_branch:
                 #Get everything remaining from current branch
                 self.handle_non_user_methods_in_current_branch("")
-
                 #We may have jumped through some invisible nodes along the way
                 while not new_branch in self.nodes[self.cur_branch][-1].child_branches:
                     #Get the branch number for the invisible branch we took
-                    invis_node_branch = self.nodes[self.cur_branch][-1].child_branches[1]
+                    possible_branches = self.nodes[self.cur_branch][-1].child_branches
+                    invis_node_branch = possible_branches[-1]
+
+                    #If we're starting a loop we can actually miss prints in both directions,
+                    # check if we should follow the top branch
+                    if invis_node_branch > new_branch:
+                        invis_node_branch = possible_branches[0]
+
                     #Add the invisible node
                     self.animation_path.append(self.nodes[invis_node_branch][0])
 
@@ -296,9 +352,9 @@ class StaticGraph(graphInterface):
                 #Get anything in new branch before actual method
                 self.handle_non_user_methods_in_current_branch(next_method_print[1])
 
-
             #Add the actual method
             self.animation_path.append(self.nodes[self.cur_branch][self.cur_branch_index])
+
             #Jump ahead to when the method we just entered gets popped
             self.cur_index = self.find_corresponding_pop(next_method_print[1], next_method_print[2])
         return
@@ -331,7 +387,6 @@ class StaticGraph(graphInterface):
             #For every path in this branch
             for branch in branched_node_array[0]:
                 #Recurse on the path, store the returned final_node and add it to our new parent set
-                arrayUtils.print_nested(branch)
                 final_nodes_in_branch, branch_num = self.chain_nodes(branch, parent_nodes, x, y, branch_num + 1)
                 #Filter out nodes with method name Return, as this stops execution
                 new_parents.extend(filter(lambda x: x.method.name != "Return", arrayUtils.flatten(final_nodes_in_branch)))
@@ -378,7 +433,14 @@ class StaticGraph(graphInterface):
                     if break_flag or parent.method.name != "Break":
                         node.add_parent(parent)
 
+                        #Weird special cases
                         if parent.method.name == "InvisibleNode" and node.method.name != "InvisibleNode":
+                            parent.add_branch(branch_num + 1)
+                        elif parent.method.name != "InvisibleNode" and node.method.name == "repeat":
+                            parent.add_branch(branch_num + 1)
+                        elif parent.method.name == "loopEnd" and node.method.name == "repeat":
+                            parent.add_branch(branch_num - 1)
+                        elif parent.method.name == "loopEnd" and node.method.name == "Return":
                             parent.add_branch(branch_num + 1)
                         else:
                             parent.add_branch(branch_num)
@@ -392,6 +454,9 @@ class StaticGraph(graphInterface):
             except IndexError:
                 self.nodes.append([])
                 self.nodes[branch_num].append(node)
+
+            node.branch = branch_num
+            node.index = len(self.nodes[branch_num]) - 1
 
             #Recurse on remaining array
             final_node, branch_num = self.chain_nodes(branched_node_array[1:], parents, x + node_width + horizontal_buffer, y, branch_num, break_flag=len(parents) > 1)
@@ -482,17 +547,27 @@ class StaticGraph(graphInterface):
             print("branch " + str(i) + " is " + str(map(lambda x: x.method.name, branch)))
             map(lambda x: x.write(), branch)
 
-    def enter_new_method(self, node, cam, window, entering):
+    def enter_new_method(self, node, cam, window, entering, in_animation = False):
+        print("Entering " + node.method.name)
+
         self.current = node
         if entering:
-            self.stack.append(node)
+            self.stack.append(node, self.active_node.branch, self.active_node.index)
+            self.cur_branch = self.cur_branch_index = 0
         else:
-            self.stack.pop_to(node)
+            frame = self.stack.pop_to(node)
+            if in_animation:
+                self.cur_branch = frame.branch
+                self.cur_branch_index = frame.index
+            else:
+                self.cur_branch = self.cur_branch_index = 0
         self.data.add_params(node.method.parameters)
-        cam.reset()
-        self.place_nodes(window)
+
+        self.place_nodes(window, in_animation)
         self.animation_path = []
-        self.dot.place(self.nodes[0][0].x, self.nodes[0][0].y)
+        cam.set_pos(self.active_node.x, self.active_node.y)
+
+        self.dot.place(self.active_node.x, self.active_node.y)
         print(self.flow[self.cur_index:])
 
 
@@ -503,10 +578,14 @@ class StaticGraph(graphInterface):
                 if node.hit(x, y, cam.x, cam.y):
                     method = filter(lambda x: x.name == node.method.name, self.methods)
                     if len(method) > 0:
+                        #self.cur_branch = 0
+                        #self.cur_branch_index = 0
                         self.enter_new_method(Node(method[0]), cam, window, True)
                     return
 
         node = self.stack.get_clicked_item(x, y)
 
         if node is not None:
+            #self.cur_branch = 0
+            #self.cur_branch_index = 0
             self.enter_new_method(node, cam, window, False)

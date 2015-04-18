@@ -24,6 +24,11 @@ class Camera():
         self.y = 0
         self.zoom = 1.0
 
+    def set_pos(self, x, y):
+        self.x = x - (self.width / 2)
+        self.y = y - (self.height / 2)
+        self.zoom = 1.0
+
     def standard_projection(self):
         pyglet.gl.glLoadIdentity()
         pyglet.gl.glTranslatef(self.width / 2 + node.node_width / 2, self.height / 2 + node.node_height / 2, 0)

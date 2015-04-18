@@ -1085,12 +1085,13 @@ class While(Statement):
         visitor.visit_While(self)
 
     def get_branch_numbers(self):
-        branches = [-1, self.line_num]
+        branches = [-1, -1, self.line_num]
         for statement in self.body:
             if is_visual_branch(statement):
                 branches.extend(statement.get_branch_numbers())
                 if is_loop(statement):
-                    branches.append(-1)
+                    #I have a hard time believing this one
+                    branches.extend([-1, -1, -1, -1])
 
         return branches
 
@@ -1147,8 +1148,8 @@ class While(Statement):
 
         #au.print_nested(invocations)
         #au.print_nested(invocations.append([MethodInvocation("InvisibleNode")]))
-        #invocations = [invocations, [MethodInvocation("InvisibleNode")]]
-        #au.print_nested(invocations)
+        invocations = [invocations, [MethodInvocation("InvisibleNode")]]
+        au.print_nested(invocations)
         return invocations
 
 
