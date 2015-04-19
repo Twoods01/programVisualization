@@ -11,17 +11,14 @@ class Stack():
         self.stack = []
         self.window = window
 
-    def append(self, node, branch, index):
-        node.set_position(self.window.width - node_width - 10, ((node_height + 5) * (len(self.stack) + 1)))
-        f = Frame(node, branch, index)
-        self.stack.append(f)
-        print("Pushed frame " + str(f))
+    def append(self, frame):
+        frame.node.set_position(self.window.width - node_width - 10, ((node_height + 5) * (len(self.stack) + 1)))
+        self.stack.append(frame)
 
     def pop_to(self, node):
         f = self.stack[-1]
         while self.stack[-1].node != node:
             f = self.stack.pop()
-        print("Popped frame " + str(f))
         return f
 
     def get_frame_after_pop(self):

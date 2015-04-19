@@ -1089,10 +1089,8 @@ class While(Statement):
         for statement in self.body:
             if is_visual_branch(statement):
                 branches.extend(statement.get_branch_numbers())
-                if is_loop(statement):
-                    #I have a hard time believing this one
-                    branches.extend([-1, -1, -1, -1])
 
+        branches.extend([-1, -1])
         return branches
 
     def get_returns(self):
@@ -1146,10 +1144,7 @@ class While(Statement):
         invocations.append(MethodInvocation("repeat"))
         invocations.append(MethodInvocation("loopEnd"))
 
-        #au.print_nested(invocations)
-        #au.print_nested(invocations.append([MethodInvocation("InvisibleNode")]))
         invocations = [invocations, [MethodInvocation("InvisibleNode")]]
-        au.print_nested(invocations)
         return invocations
 
 
@@ -1170,13 +1165,12 @@ class For(Statement):
             self.body.accept(visitor)
 
     def get_branch_numbers(self):
-        branches = [-1, self.line_num]
+        branches = [-1, -1, self.line_num]
         for statement in self.body:
             if is_visual_branch(statement):
                 branches.extend(statement.get_branch_numbers())
-                if is_loop(statement):
-                    branches.append(-1)
 
+        branches.extend([-1, -1])
         return branches
 
     def to_string(self):
@@ -1239,6 +1233,8 @@ class For(Statement):
         invocations.append([[MethodInvocation("InvisibleNode")], inside_loop])
         invocations.append(MethodInvocation("repeat"))
         invocations.append(MethodInvocation("loopEnd"))
+
+        invocations = [invocations, [MethodInvocation("InvisibleNode")]]
         return invocations
 
     def get_returns(self):
@@ -1260,10 +1256,20 @@ class ForEach(Statement):
         self.iterable = iterable
         self.body = body
         self.modifiers = modifiers
+        self.branch_line_nums = self.get_branch_numbers()
 
     def accept(self, visitor):
         if visitor.visit_ForEach(self):
             self.body.accept(visitor)
+
+    def get_branch_numbers(self):
+        branches = [-1, -1, self.line_num]
+        for statement in self.body:
+            if is_visual_branch(statement):
+                branches.extend(statement.get_branch_numbers())
+
+        branches.extend([-1, -1])
+        return branches
 
     def get_returns(self):
         returns = []
@@ -1301,6 +1307,8 @@ class ForEach(Statement):
         invocations.append([[MethodInvocation("InvisibleNode")], inside_loop])
         invocations.append(MethodInvocation("repeat"))
         invocations.append(MethodInvocation("loopEnd"))
+
+        invocations = [invocations, [MethodInvocation("InvisibleNode")]]
         return invocations
 
 
