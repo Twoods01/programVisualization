@@ -1,18 +1,18 @@
 __author__ = 'twoods0129'
 import pyglet, node
-from time import sleep
+import datetime
 
 class AnimationDot:
-    move_steps = 10
-    scale_steps = 10
+    move_duration = 1.0
+    scale_duration = 0.5
     min_width = 25
-    wait_frames = 20
+    wait_duration = 0.75
     max_width = node.node_width
-    width_inc = (max_width - min_width) / scale_steps
+    width_inc = (max_width - min_width) / scale_duration
 
     min_height = 25
     max_height = node.node_height
-    height_inc = (max_height - min_height) / scale_steps
+    height_inc = (max_height - min_height) / scale_duration
 
     step_over_color = (64, 74, 110)
     step_in_color = (136, 140, 62)
@@ -32,79 +32,94 @@ class AnimationDot:
         #The target node we are going for
         self.target = None
 
-
         self.step_into = True
         #Methods to call when we need a new target, and when we need to update the currently active node
         self.new_target_callback = new_target_callback
         self.update_active_node_callback = update_active_node_callback
         #How far through the movement animation we are
-        self.movement_frames = 0
+        self.movement_duration = 0
+        self.updated_active_node = False
 
         #Current size of the dot
         self.width = AnimationDot.max_width
         self.height = AnimationDot.max_height
 
-        self.wait_frames = 0
+        self.last_update = datetime.datetime.now()
+        self.wait_duration = 0
+
 
     def place(self, x, y):
         self.x = x
         self.y = y
 
-    def wait(self, frames):
-        self.wait_frames = 20
+    def wait(self):
+        self.wait_duration = AnimationDot.wait_duration
 
     def set_destination(self, node):
         self.target = node
-        self.x_inc = (node.x - self.x) / AnimationDot.move_steps
-        self.y_inc = (node.y - self.y) / AnimationDot.move_steps
+        self.x_inc = (node.x - self.x) / AnimationDot.move_duration
+        self.y_inc = (node.y - self.y) / AnimationDot.move_duration
 
         self.reached_target = False
+        self.updated_active_node = False
         self.has_target = True
-        self.movement_frames = -1
+        self.movement_duration = 0
 
-    def shrink(self):
-        self.width -= AnimationDot.width_inc
-        self.height -= AnimationDot.height_inc
+    def shrink(self, delta_t):
+        self.width -= int(AnimationDot.width_inc * delta_t)
+        self.height -= int(AnimationDot.height_inc * delta_t)
 
-    def move_to_target(self):
-        self.x += self.x_inc
-        self.y += self.y_inc
+    def move_to_target(self, delta_t):
+        self.x += self.x_inc * delta_t
+        self.y += self.y_inc * delta_t
 
-        if self.movement_frames == AnimationDot.move_steps / 2:
+        if self.movement_duration >= AnimationDot.move_duration / 2 and not self.updated_active_node:
+            self.updated_active_node = True
             self.update_active_node_callback(self.target)
 
-        elif self.movement_frames == AnimationDot.move_steps:
+        elif self.movement_duration > AnimationDot.move_duration:
             #Snap dot to correct position
             self.x = self.target.x
             self.y = self.target.y
             self.reached_target = True
 
-        self.movement_frames += 1
+        self.movement_duration += delta_t
 
-    def grow(self):
-        self.width += AnimationDot.width_inc
-        self.height += AnimationDot.height_inc
+    def grow(self, delta_t):
+        self.width += int(AnimationDot.width_inc * delta_t)
+        self.height += int(AnimationDot.height_inc * delta_t)
 
     def draw(self):
-        if self.wait_frames >= 0:
-            if self.wait_frames == 0:
+        cur_time = datetime.datetime.now()
+        delta_t = (cur_time - self.last_update).total_seconds()
+
+        if self.wait_duration >= 0:
+            self.wait_duration -= delta_t
+            if self.wait_duration <= 0:
                 self.new_target_callback(False)
-            self.wait_frames -= 1
+
 
         if self.has_target:
             #Shrink until we reach minimum size
             if self.width > AnimationDot.min_width and not self.reached_target:
-                self.shrink()
+                self.shrink(delta_t)
             #Then move until we reach our target
             elif not self.reached_target:
-                self.move_to_target()
+                self.width = AnimationDot.min_width
+                self.height = AnimationDot.min_height
+                self.move_to_target(delta_t)
             #Then grow until we reach max size
             elif self.width < AnimationDot.max_width and self.target.visible:
-                self.grow()
+                self.grow(delta_t)
             #Finished this animation, ask for next target
             else:
+                if self.target.visible:
+                    self.width = AnimationDot.max_width
+                    self.height = AnimationDot.max_height
                 self.has_target = False
                 self.new_target_callback()
+
+
 
         pyglet.gl.glPushMatrix()
         pyglet.gl.glTranslatef(self.x, self.y, 0)
@@ -112,7 +127,6 @@ class AnimationDot:
             color = AnimationDot.step_in_color
         else:
             color = AnimationDot.step_over_color
-
 
         node_vertices = pyglet.graphics.vertex_list_indexed(4,
                                     [0, 1, 2, 0, 2, 3],
@@ -125,3 +139,5 @@ class AnimationDot:
         node_vertices.draw(pyglet.gl.GL_TRIANGLES)
 
         pyglet.gl.glPopMatrix()
+
+        self.last_update = datetime.datetime.now()

@@ -196,7 +196,7 @@ class StaticGraph(graphInterface):
                 if self.active_node.method.name == method_to_enter:
                     self.enter_new_method(Node(method[0]), self.cam, self.window, True, True)
 
-                self.dot.wait(animationDot.AnimationDot.wait_frames)
+                self.dot.wait()
                 return
 
         #Nothing more on current path, update path
@@ -209,7 +209,7 @@ class StaticGraph(graphInterface):
                 frame = self.stack.get_frame_after_pop()
 
                 self.enter_new_method(frame.node, self.cam, self.window, False, True)
-                self.dot.wait(animationDot.AnimationDot.wait_frames)
+                self.dot.wait()
                 return
             else:
                 return
