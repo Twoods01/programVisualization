@@ -108,6 +108,7 @@ class StaticGraph(graphInterface):
     def draw_UI(self):
         self.stack.draw()
         self.data.draw()
+        self.dot.draw_ui()
 
     #Determines x/y coordinates to place nodes at and seeks cur_index to the proper location
     def place_nodes(self, window, in_animation=False):
@@ -206,7 +207,11 @@ class StaticGraph(graphInterface):
         #If after a step forward the length is still 0 we've reached the end
         if len(self.animation_path) == 0:
             if self.dot.step_into:
-                frame = self.stack.get_frame_after_pop()
+                try:
+                    frame = self.stack.get_frame_after_pop()
+                #End of main
+                except IndexError:
+                    return
 
                 self.enter_new_method(frame.node, self.cam, self.window, False, True)
                 self.dot.wait()
@@ -247,6 +252,7 @@ class StaticGraph(graphInterface):
 
         #We've gone past the end of the file
         except IndexError:
+            print("Finished file")
             #Set active node to last node
             self.active_node = self.nodes[-1][-1]
             return
@@ -562,7 +568,7 @@ class StaticGraph(graphInterface):
 
         self.dot.place(self.active_node.x, self.active_node.y)
 
-
+    #Mouse click
     def handle_input(self, x, y, cam, window):
 
         for branch in self.nodes:
@@ -570,14 +576,12 @@ class StaticGraph(graphInterface):
                 if node.hit(x, y, cam.x, cam.y):
                     method = filter(lambda x: x.name == node.method.name, self.methods)
                     if len(method) > 0:
-                        #self.cur_branch = 0
-                        #self.cur_branch_index = 0
                         self.enter_new_method(Node(method[0]), cam, window, True)
                     return
 
         node = self.stack.get_clicked_item(x, y)
 
         if node is not None:
-            #self.cur_branch = 0
-            #self.cur_branch_index = 0
             self.enter_new_method(node, cam, window, False)
+        else:
+            self.dot.handle_input(x, y)

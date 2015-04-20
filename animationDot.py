@@ -141,3 +141,37 @@ class AnimationDot:
         pyglet.gl.glPopMatrix()
 
         self.last_update = datetime.datetime.now()
+
+    def handle_input(self, x, y):
+
+        if x > 1125 and x < 1145 and y > 670 and y < 682:
+            AnimationDot.scale_duration += 0.1
+            AnimationDot.width_inc = (AnimationDot.max_width - AnimationDot.min_width) / AnimationDot.scale_duration
+            AnimationDot.height_inc = (AnimationDot.max_height - AnimationDot.min_height) / AnimationDot.scale_duration
+        elif x > 1140 and x < 1160 and y > 670 and y < 682:
+            if AnimationDot.scale_duration > 0.2:
+                AnimationDot.scale_duration -= 0.1
+                AnimationDot.width_inc = (AnimationDot.max_width - AnimationDot.min_width) / AnimationDot.scale_duration
+                AnimationDot.height_inc = (AnimationDot.max_height - AnimationDot.min_height) / AnimationDot.scale_duration
+        elif x > 1130 and x < 1142 and y > 641 and y < 653:
+            AnimationDot.move_duration += 0.1
+        elif x > 1145 and x < 1157 and y > 641 and y < 653:
+            if AnimationDot.move_duration > 0.2:
+                AnimationDot.move_duration -= 0.1
+
+    def draw_ui(self):
+        pyglet.text.Label("Scale: " + str(AnimationDot.scale_duration) + " s  +  -",
+                          font_name='Times New Roman',
+                          font_size=12,
+                          x = 1100,
+                          y = 680,
+                          anchor_y = 'center',
+                          anchor_x= 'center').draw()
+
+        pyglet.text.Label("Move: " + str(AnimationDot.move_duration) + " s  +  -",
+                          font_name='Times New Roman',
+                          font_size=12,
+                          x = 1100,
+                          y = 650,
+                          anchor_y = 'center',
+                          anchor_x= 'center').draw()
