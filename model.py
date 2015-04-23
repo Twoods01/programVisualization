@@ -10,7 +10,7 @@ def is_loop(statement):
 
 #Determines if a given statement is visualized by a branch
 def is_visual_branch(statement):
-    return is_branch(statement) or is_loop(statement)
+    return is_branch(statement) or is_loop(statement) or type(statement) is Try
 
 # Base node
 class SourceElement(object):
@@ -734,11 +734,12 @@ class Multiplicative(BinaryExpression):
 
 class Unary(Expression):
 
-    def __init__(self, sign, expression):
+    def __init__(self, sign, expression, line_num):
         super(Unary, self).__init__()
         self._fields = ['sign', 'expression']
         self.sign = sign
         self.expression = expression
+        self.line_num = line_num
 
     def to_string(self):
         #I need to look into other possibilities here
@@ -790,6 +791,9 @@ class Block(Statement):
     def __iter__(self):
         for s in self.statements:
             yield s
+
+    def __getitem__(self, item):
+        return self.statements[item]
 
     def accept(self, visitor):
         if visitor.visit_Block(self):
@@ -915,10 +919,16 @@ class IfThenElse(Statement):
                 if is_visual_branch(statement):
                     additional_branches.extend(statement.get_branch_numbers(True))
 
+            if type(self.if_true[-1]) is IfThenElse:
+                del additional_branches[-1]
+
         #Next mark the else branch
         #A line number of -1 will represent invisible nodes
         if self.if_false is None:
             additional_branches.append(-1)
+            #If this is an if/else inside the body of another if/else then it needs an additional invisible node
+            if in_body:
+                additional_branches.append(-1)
         elif is_branch(self.if_false):
             additional_branches.extend([-1] + self.if_false.get_branch_numbers())
             #If this is an if/else inside the body of another if/else then it needs an additional invisible node
@@ -964,16 +974,17 @@ class IfThenElse(Statement):
         if type(self.if_true) is Block:
             for statement in self.if_true:
 
-                if is_branch(statement):
+                if is_branch(statement) or is_loop(statement):
                     method_in_pred = au.flatten(statement.get_predicate().get_method_invocations())
                     if len(method_in_pred) != 0:
                         block.extend(method_in_pred)
-                    elif len(block) == 0:
+                    #Why is this check here?
+                    #elif len(block) == 0:
+                    else:
                         block.append(MethodInvocation("InvisibleNode"))
 
                     invs = statement.get_method_invocations()
                     au.add_to_array_preserve_nesting(block, invs)
-
                 elif type(statement) is Return:
                     block.append(MethodInvocation("Return"))
                 else:
@@ -995,7 +1006,7 @@ class IfThenElse(Statement):
                     array.append([MethodInvocation("InvisibleNode")])
 
         block = []
-        if type(self.if_false) is IfThenElse:
+        if type(self.if_false) is IfThenElse or is_loop(self.if_false):
             method_in_pred = au.flatten(self.if_false.get_predicate().get_method_invocations())
             if len(method_in_pred) != 0:
                 block.extend(method_in_pred)
@@ -1011,7 +1022,7 @@ class IfThenElse(Statement):
 
         elif type(self.if_false) is Block:
             for statement in self.if_false:
-                if is_branch(statement):
+                if is_branch(statement) or is_loop(statement):
                     method_in_pred = au.flatten(statement.get_predicate().get_method_invocations())
                     if len(method_in_pred) != 0:
                         block.extend(method_in_pred)
@@ -1084,14 +1095,25 @@ class While(Statement):
     def accept(self, visitor):
         visitor.visit_While(self)
 
-    def get_branch_numbers(self):
+    def get_branch_numbers(self, in_body = False):
         branches = [-1, -1, self.line_num]
         for statement in self.body:
             if is_visual_branch(statement):
-                branches.extend(statement.get_branch_numbers())
+                branches.extend(statement.get_branch_numbers(True))
+
+        #If the last statement is an if we need to get rid of one of it's invisible branches
+        # as we already account for it
+        if type(self.body[-1]) is IfThenElse:
+            del branches[-1]
+
+        if in_body:
+            branches.extend([-1])
 
         branches.extend([-1, -1])
         return branches
+
+    def get_predicate(self):
+        return self.predicate
 
     def get_returns(self):
         returns = []
@@ -1115,9 +1137,6 @@ class While(Statement):
         invocations = [MethodInvocation("loopStart")]
 
         inside_loop = []
-        inv_in_pred = au.flatten(self.predicate.get_method_invocations())
-        if len(inv_in_pred) != 0:
-            inside_loop.extend(inv_in_pred)
 
         if type(self.body) is Block:
             for statement in self.body:
@@ -1164,14 +1183,25 @@ class For(Statement):
         if visitor.visit_For(self):
             self.body.accept(visitor)
 
-    def get_branch_numbers(self):
+    def get_branch_numbers(self, in_body = False):
         branches = [-1, -1, self.line_num]
         for statement in self.body:
             if is_visual_branch(statement):
-                branches.extend(statement.get_branch_numbers())
+                branches.extend(statement.get_branch_numbers(True))
+
+        if in_body:
+            branches.append(-1)
+
+        #If the last statement is an if we need to get rid of one of it's invisible branches
+        # as we already account for it
+        if type(self.body[-1]) is IfThenElse:
+            del branches[-1]
 
         branches.extend([-1, -1])
         return branches
+
+    def get_predicate(self):
+        return self.predicate
 
     def to_string(self):
         string = "for (" + self.init.to_string() + "; " + self.predicate.to_string() + ";"
@@ -1197,12 +1227,13 @@ class For(Statement):
         invocations = [MethodInvocation("loopStart")]
 
         inside_loop = []
+        #Problem
         if type(self.init) is list:
             for el in self.init:
                 inside_loop.extend(el.get_method_invocations())
         else:
             inside_loop.extend(self.init.get_method_invocations())
-        inside_loop.extend(self.predicate.get_method_invocations())
+
         for update in self.update:
             inside_loop.extend(update.get_method_invocations())
 
@@ -1211,7 +1242,7 @@ class For(Statement):
                 inv = statement.get_method_invocations()
 
                 #Have to check predicate for method call here otherwise array structure gets ruined
-                if is_branch(statement):
+                if is_branch(statement) or is_loop(statement):
                     method_in_pred = au.flatten(statement.get_predicate().get_method_invocations())
                     if len(method_in_pred) != 0:
                         inside_loop.extend(method_in_pred)
@@ -1219,7 +1250,7 @@ class For(Statement):
                 au.add_to_array_preserve_nesting(inside_loop, inv)
         else:
             #Have to check predicate for method call here otherwise array structure gets ruined
-            if type(self.body) is IfThenElse:
+            if type(self.body) is IfThenElse or is_loop(self.body):
                 method_in_pred = au.flatten(self.body.get_predicate().get_method_invocations())
                 if len(method_in_pred) != 0:
                     inside_loop.extend(method_in_pred)
@@ -1262,11 +1293,19 @@ class ForEach(Statement):
         if visitor.visit_ForEach(self):
             self.body.accept(visitor)
 
-    def get_branch_numbers(self):
+    def get_branch_numbers(self, in_body = False):
         branches = [-1, -1, self.line_num]
         for statement in self.body:
             if is_visual_branch(statement):
-                branches.extend(statement.get_branch_numbers())
+                branches.extend(statement.get_branch_numbers(True))
+
+        #If the last statement is an if we need to get rid of one of it's invisible branches
+        # as we already account for it
+        if type(self.body[-1]) is IfThenElse:
+            del branches[-1]
+
+        if in_body:
+            branches.append(-1)
 
         branches.extend([-1, -1])
         return branches
@@ -1296,7 +1335,7 @@ class ForEach(Statement):
                 au.add_to_array_preserve_nesting(inside_loop, inv)
         else:
             #Have to check predicate for method call here otherwise array structure gets ruined
-            if type(self.body) is IfThenElse:
+            if type(self.body) is IfThenElse or is_loop(self.body):
                 method_in_pred = au.flatten(self.body.predicate.get_method_invocations())
                 if len(method_in_pred) != 0:
                     inside_loop.extend(method_in_pred)
@@ -1411,10 +1450,11 @@ class Continue(Statement):
 
 class Break(Statement):
 
-    def __init__(self, label=None):
+    def __init__(self, label=None, line_num=0):
         super(Break, self).__init__()
         self._fields = ['label']
         self.label = label
+        self.line_num = line_num
 
     def get_data(self):
         return []
@@ -1494,7 +1534,7 @@ class Throw(Statement):
 
 class Try(Statement):
 
-    def __init__(self, block, catches=None, _finally=None, resources=None):
+    def __init__(self, block, line_num, end_line_num, catches=None, _finally=None, resources=None):
         super(Try, self).__init__()
         self._fields = ['block', 'catches', '_finally', 'resources']
         if catches is None:
@@ -1505,6 +1545,9 @@ class Try(Statement):
         self.catches = catches
         self._finally = _finally
         self.resources = resources
+        self.line_num = line_num
+        self.end_line_num = end_line_num
+        self.branch_line_nums = self.get_branch_numbers()
 
     def accept(self, visitor):
         if visitor.visit_Try(self):
@@ -1514,6 +1557,29 @@ class Try(Statement):
             visitor.visit_Catch(c)
         if self._finally:
             self._finally.accept(visitor)
+
+    def get_branch_numbers(self, in_body = False):
+        branches = [self.line_num]
+        previous_was_branch = False
+
+        for statement in self.block:
+            if is_visual_branch(statement):
+                previous_was_branch = True
+                print("Adding " + str(statement))
+                branches.extend(statement.get_branch_numbers())
+                print(branches)
+                print("There are a total of " + str(len(branches)) + " branches")
+            elif previous_was_branch:
+                previous_was_branch = False
+                branches.extend([-1])
+
+        if self.catches is not None:
+            print(self.catches)
+            branches.extend(map(lambda x: x.line_num, self.catches))
+        else:
+            branches.extend([-1])
+
+        return branches
 
     def get_data(self):
         data = []
@@ -1541,22 +1607,30 @@ class Try(Statement):
         block = []
 
         for statement in self.block:
-            invs = statement.get_method_invocations()
+            inv = statement.get_method_invocations()
 
-            for inv in invs:
-                if hasattr(inv, "__iter__"):
-                    block.append(inv)
-                else:
-                    block.extend([inv])
+            #Have to check predicate for method call here otherwise array structure gets ruined
+            if is_branch(statement) or is_loop(statement):
+                method_in_pred = au.flatten(statement.get_predicate().get_method_invocations())
+                if len(method_in_pred) != 0:
+                    block.extend(method_in_pred)
+
+
+            au.add_to_array_preserve_nesting(block, inv)
 
         array.append(block)
-
         block = []
 
         for statement in self.catches:
-            methods_in_statement = au.flatten(statement.get_method_invocations())
-            if len(methods_in_statement) > 0:
-                block.extend(methods_in_statement)
+            inv = statement.get_method_invocations()
+
+            #Have to check predicate for method call here otherwise array structure gets ruined
+            if is_branch(statement):
+                method_in_pred = au.flatten(statement.get_predicate().get_method_invocations())
+                if len(method_in_pred) != 0:
+                    array.extend(method_in_pred)
+
+            au.add_to_array_preserve_nesting(block, inv)
 
         if len(block) > 0:
             array.append(block)
@@ -1576,7 +1650,7 @@ class Try(Statement):
 
 class Catch(SourceElement):
 
-    def __init__(self, variable, modifiers=None, types=None, block=None):
+    def __init__(self, variable, line_num, modifiers=None, types=None, block=None):
         super(Catch, self).__init__()
         self._fields = ['variable', 'modifiers', 'types', 'block']
         if modifiers is None:
@@ -1587,6 +1661,7 @@ class Catch(SourceElement):
         self.modifiers = modifiers
         self.types = types
         self.block = block
+        self.line_num = line_num
 
     def accept(self, visitor):
         if visitor.visit_Catch(self):

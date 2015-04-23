@@ -24,9 +24,9 @@ def main(argv):
         print("main.py -d <directory>")
         sys.exit(2)
 
-    directory = "program"
+    directory = "s1"
     visualization = StaticGraph
-    args = "test"
+    args = "testt.txt"
     timeout = None
     processing = True
 

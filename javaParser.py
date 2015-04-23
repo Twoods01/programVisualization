@@ -136,6 +136,11 @@ class Javap:
                                     self.add_branch_print(file_data, line, inserted_lines, branch_num, returns,
                                                           return_index, return_type, method.name, class_name)
 
+                                #Special equal to case
+                                if returns[return_index].line_num == line:
+                                    inserted_lines = self.add_return_print(file_data, returns[return_index], inserted_lines, return_type, method.name, class_name)
+                                    return_index += 1
+
                         elif previous_was_branch:
                             previous_was_branch = False
                             inserted_lines, branch_num, return_index = \
@@ -257,14 +262,15 @@ class Javap:
                 print(line)
 
         #Run the file
+        print("Running  " + "java -cp " + classpath + " " + file_array[-1].replace(".java", "") + " " + self.args)
         java = subprocess.Popen("java -cp " + classpath + " " + file_array[-1].replace(".java", "") + " " + self.args,
           shell=True,
           stdout=subprocess.PIPE)
 
-        if timeout:
-            t = threading.Timer(timeout, timeout, [java])
-            t.start()
-            t.join()
+        # if timeout:
+        #     t = threading.Timer(timeout, timeout, [java])
+        #     t.start()
+        #     t.join()
 
         #Go through each line of output and add print statements to program_flow
         program_flow = []
@@ -272,8 +278,8 @@ class Javap:
             if "push" in line or "pop" in line or "branch" in line:
                 program_flow.append(line.replace("\n", ""))
 
-        if timeout:
-            t.cancel()
+        # if timeout:
+        #     t.cancel()
 
         return program_flow
 
@@ -354,9 +360,6 @@ class Javap:
         branch_array = [m.MethodInvocation("Start")]
         for statement in method.body:
 
-            if type(statement) is m.For:
-                print("For loop statement " + str(statement))
-
             methods_this_statement = statement.get_method_invocations()
 
             #Have to check predicate for method call here otherwise array structure gets ruined
@@ -365,7 +368,7 @@ class Javap:
                 if len(method_in_pred) != 0:
                     branch_array.extend(method_in_pred)
 
-            if type(statement) is m.IfThenElse or type(statement) is m.Try or m.is_loop(statement):
+            if m.is_visual_branch(statement):
                 branch_array.append(statement.get_method_invocations())
             else:
                 branch_array.extend(methods_this_statement)
@@ -401,6 +404,7 @@ class Javap:
 
                 if i < len(branch_array) - 1 and hasattr(branch_array[i + 1], "__iter__"):
                     if hasattr(branch_array[i][0], "__iter__") and hasattr(branch_array[i + 1][0], "__iter__"):
+                        print("Separating!")
                         branch_array.insert(i + 1, m.MethodInvocation("InvisibleNode"))
 
         return branch_array

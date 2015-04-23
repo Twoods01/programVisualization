@@ -44,7 +44,6 @@ def add_to_array_preserve_nesting(arr, new):
 
             if all_nested(new):
                 arr.append(new)
-
             else:
                 for el in new:
                     if hasattr(el, "__iter__"):

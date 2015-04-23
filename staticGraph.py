@@ -253,8 +253,8 @@ class StaticGraph(graphInterface):
         #We've gone past the end of the file
         except IndexError:
             print("Finished file")
-            #Set active node to last node
-            self.active_node = self.nodes[-1][-1]
+            #Put last node on the path and exit
+            self.animation_path.append(self.nodes[-1][-1])
             return
 
         #We exited the method
@@ -452,7 +452,9 @@ class StaticGraph(graphInterface):
             try:
                 self.nodes[branch_num].append(node)
             except IndexError:
-                self.nodes.append([])
+                branches_to_insert = branch_num - (len(self.nodes) - 1)
+                for i in range(0, branches_to_insert):
+                    self.nodes.append([])
                 self.nodes[branch_num].append(node)
 
             node.branch = branch_num
@@ -567,6 +569,8 @@ class StaticGraph(graphInterface):
         cam.set_pos(self.active_node.x, self.active_node.y)
 
         self.dot.place(self.active_node.x, self.active_node.y)
+        self.print_branched_nodes()
+        print(self.flow)
 
     #Mouse click
     def handle_input(self, x, y, cam, window):

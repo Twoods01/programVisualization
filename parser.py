@@ -317,7 +317,7 @@ class ExpressionParser(object):
         if len(p) == 2:
             p[0] = p[1]
         else:
-            p[0] = Unary(p[1], p[2])
+            p[0] = Unary(p[1], p[2], p.lexer.lineno - 1)
 
     def p_unary_expression_not_name(self, p):
         '''unary_expression_not_name : pre_increment_expression
@@ -328,15 +328,15 @@ class ExpressionParser(object):
         if len(p) == 2:
             p[0] = p[1]
         else:
-            p[0] = Unary(p[1], p[2])
+            p[0] = Unary(p[1], p[2], p.lexer.lineno - 1)
 
     def p_pre_increment_expression(self, p):
         '''pre_increment_expression : PLUSPLUS unary_expression'''
-        p[0] = Unary('++x', p[2])
+        p[0] = Unary('++x', p[2], p.lexer.lineno - 1)
 
     def p_pre_decrement_expression(self, p):
         '''pre_decrement_expression : MINUSMINUS unary_expression'''
-        p[0] = Unary('--x', p[2])
+        p[0] = Unary('--x', p[2], p.lexer.lineno - 1)
 
     def p_unary_expression_not_plus_minus(self, p):
         '''unary_expression_not_plus_minus : postfix_expression
@@ -346,7 +346,7 @@ class ExpressionParser(object):
         if len(p) == 2:
             p[0] = p[1]
         else:
-            p[0] = Unary(p[1], p[2])
+            p[0] = Unary(p[1], p[2], p.lexer.lineno - 1)
 
     def p_unary_expression_not_plus_minus_not_name(self, p):
         '''unary_expression_not_plus_minus_not_name : postfix_expression_not_name
@@ -356,7 +356,7 @@ class ExpressionParser(object):
         if len(p) == 2:
             p[0] = p[1]
         else:
-            p[0] = Unary(p[1], p[2])
+            p[0] = Unary(p[1], p[2], p.lexer.lineno - 1)
 
     def p_postfix_expression(self, p):
         '''postfix_expression : primary
@@ -373,11 +373,11 @@ class ExpressionParser(object):
 
     def p_post_increment_expression(self, p):
         '''post_increment_expression : postfix_expression PLUSPLUS'''
-        p[0] = Unary('x++', p[1])
+        p[0] = Unary('x++', p[1], p.lexer.lineno - 1)
 
     def p_post_decrement_expression(self, p):
         '''post_decrement_expression : postfix_expression MINUSMINUS'''
-        p[0] = Unary('x--', p[1])
+        p[0] = Unary('x--', p[1], p.lexer.lineno - 1)
 
     def p_primary(self, p):
         '''primary : primary_no_new_array
@@ -791,9 +791,9 @@ class StatementParser(object):
         '''break_statement : BREAK ';'
                            | BREAK NAME ';' '''
         if len(p) == 3:
-            p[0] = Break()
+            p[0] = Break(line_num=p.lexer.lineno - 2)
         else:
-            p[0] = Break(p[2])
+            p[0] = Break(p[2], line_num=p.lexer.lineno - 2)
 
     def p_continue_statement(self, p):
         '''continue_statement : CONTINUE ';'
@@ -819,9 +819,9 @@ class StatementParser(object):
         '''try_statement : TRY try_block catches
                          | TRY try_block catches_opt finally'''
         if len(p) == 4:
-            p[0] = Try(p[2], catches=p[3])
+            p[0] = Try(p[2], p[2].line_num, p.lexer.lineno - 1, catches=p[3])
         else:
-            p[0] = Try(p[2], catches=p[3], _finally=p[4])
+            p[0] = Try(p[2],p[2].line_num, p.lexer.lineno - 1, catches=p[3], _finally=p[4])
 
     def p_try_block(self, p):
         '''try_block : block'''
@@ -845,7 +845,7 @@ class StatementParser(object):
 
     def p_catch_clause(self, p):
         '''catch_clause : CATCH '(' catch_formal_parameter ')' block'''
-        p[0] = Catch(p[3]['variable'], types=p[3]['types'], modifiers=p[3]['modifiers'], block=p[5])
+        p[0] = Catch(p[3]['variable'], p[5].line_num, types=p[3]['types'], modifiers=p[3]['modifiers'], block=p[5])
 
     def p_catch_formal_parameter(self, p):
         '''catch_formal_parameter : modifiers_opt catch_type variable_declarator_id'''
@@ -867,9 +867,9 @@ class StatementParser(object):
         '''try_statement_with_resources : TRY resource_specification try_block catches_opt
                                         | TRY resource_specification try_block catches_opt finally'''
         if len(p) == 5:
-            p[0] = Try(p[3], resources=p[2], catches=p[4])
+            p[0] = Try(p[3], p[3].line_num, p.lexer.lineno - 1, resources=p[2], catches=p[4])
         else:
-            p[0] = Try(p[3], resources=p[2], catches=p[4], _finally=p[5])
+            p[0] = Try(p[3], p[3].line_num, p.lexer.lineno - 1, resources=p[2], catches=p[4], _finally=p[5])
 
     def p_resource_specification(self, p):
         '''resource_specification : '(' resources semi_opt ')' '''
@@ -1456,7 +1456,7 @@ class ClassParser(object):
 
     def p_field_declaration(self, p):
         '''field_declaration : modifiers_opt type variable_declarators ';' '''
-        p[0] = FieldDeclaration(p[2], p[3], modifiers=p[1])
+        p[0] = FieldDeclaration(p[2], p[3], p.lexer.lineno, modifiers=p[1])
 
     def p_static_initializer(self, p):
         '''static_initializer : STATIC block'''
