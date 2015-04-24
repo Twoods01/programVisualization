@@ -125,7 +125,6 @@ class Javap:
                         # the start of each branch it produces
                         if m.is_visual_branch(statement):
                             previous_was_branch = True
-
                             for line in statement.branch_line_nums:
                                 #Make sure we've put all returns which come before this line
                                 while returns[return_index].line_num < line and return_index < len(returns) - 1:
@@ -143,9 +142,9 @@ class Javap:
 
                         elif previous_was_branch:
                             previous_was_branch = False
-                            inserted_lines, branch_num, return_index = \
-                                self.add_branch_print(file_data, statement.line_num, inserted_lines, branch_num,
-                                                      returns, return_index, return_type, method.name, class_name)
+                            # inserted_lines, branch_num, return_index = \
+                            #     self.add_branch_print(file_data, statement.line_num, inserted_lines, branch_num,
+                            #                           returns, return_index, return_type, method.name, class_name)
 
                     #Make sure we've printed every return
                     while return_index < len(returns):
@@ -404,7 +403,6 @@ class Javap:
 
                 if i < len(branch_array) - 1 and hasattr(branch_array[i + 1], "__iter__"):
                     if hasattr(branch_array[i][0], "__iter__") and hasattr(branch_array[i + 1][0], "__iter__"):
-                        print("Separating!")
                         branch_array.insert(i + 1, m.MethodInvocation("InvisibleNode"))
 
         return branch_array

@@ -26,7 +26,8 @@ def main(argv):
 
     directory = "s1"
     visualization = StaticGraph
-    args = "testt.txt"
+    args = "tinyTest.txt"
+    program_flow_file = None
     timeout = None
     processing = True
 
@@ -51,7 +52,17 @@ def main(argv):
         graph = visualization(parsed.run_file(processing, timeout), parsed.get_all_methods())
     else:
         parsed.markup_file()
-        graph = visualization(parsed, window, cam)
+        if program_flow_file:
+            flow_file = open(program_flow_file, "r")
+            flow = []
+            for line in flow_file:
+                flow.append(line)
+        else:
+            flow = parsed.run_file()
+            flow_file = open(parsed.main.name.split("/")[-1] + ".flow", "w")
+            for line in flow:
+                flow_file.write(line + "\n")
+        graph = visualization(parsed, window, cam, flow)
 
     #parsed.cleanup()
 

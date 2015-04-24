@@ -920,7 +920,8 @@ class IfThenElse(Statement):
                     additional_branches.extend(statement.get_branch_numbers(True))
 
             if type(self.if_true[-1]) is IfThenElse:
-                del additional_branches[-1]
+                if self.if_true[-1].if_false is None:
+                    del additional_branches[-1]
 
         #Next mark the else branch
         #A line number of -1 will represent invisible nodes
@@ -1104,7 +1105,8 @@ class While(Statement):
         #If the last statement is an if we need to get rid of one of it's invisible branches
         # as we already account for it
         if type(self.body[-1]) is IfThenElse:
-            del branches[-1]
+            if self.body[-1].if_false is None:
+                del branches[-1]
 
         if in_body:
             branches.extend([-1])
@@ -1195,7 +1197,8 @@ class For(Statement):
         #If the last statement is an if we need to get rid of one of it's invisible branches
         # as we already account for it
         if type(self.body[-1]) is IfThenElse:
-            del branches[-1]
+            if self.body[-1].if_false is None:
+                del branches[-1]
 
         branches.extend([-1, -1])
         return branches
@@ -1302,7 +1305,8 @@ class ForEach(Statement):
         #If the last statement is an if we need to get rid of one of it's invisible branches
         # as we already account for it
         if type(self.body[-1]) is IfThenElse:
-            del branches[-1]
+            if self.body[-1].if_false is None:
+                del branches[-1]
 
         if in_body:
             branches.append(-1)
@@ -1565,16 +1569,12 @@ class Try(Statement):
         for statement in self.block:
             if is_visual_branch(statement):
                 previous_was_branch = True
-                print("Adding " + str(statement))
                 branches.extend(statement.get_branch_numbers())
-                print(branches)
-                print("There are a total of " + str(len(branches)) + " branches")
             elif previous_was_branch:
                 previous_was_branch = False
                 branches.extend([-1])
 
         if self.catches is not None:
-            print(self.catches)
             branches.extend(map(lambda x: x.line_num, self.catches))
         else:
             branches.extend([-1])

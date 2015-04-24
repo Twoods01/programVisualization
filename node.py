@@ -110,8 +110,8 @@ class Node:
         pyglet.gl.glLineWidth(3)
         for p in self.parents:
             pyglet.graphics.draw(2, pyglet.gl.GL_LINES,
-                                ('v2i', (self.x, self.y,
-                                         p.x, p.y)),
+                                ('v2i', (int(self.x), int(self.y),
+                                         int(p.x), int(p.y))),
                                 ('c3B', (color[0], color[1], color[2]) * 2))
 
 
