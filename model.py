@@ -894,6 +894,10 @@ class IfThenElse(Statement):
         self.if_false = if_false
         self.line_num = if_true.line_num
 
+        if type(self.if_true) is Block:
+            if is_visual_branch(self.if_true[0]):
+                self.line_num -= 1
+
         if self.if_false is not None:
             self.if_false_line_num = if_false.line_num
         else:
@@ -933,8 +937,8 @@ class IfThenElse(Statement):
         elif is_branch(self.if_false):
             additional_branches.extend([-1] + self.if_false.get_branch_numbers())
             #If this is an if/else inside the body of another if/else then it needs an additional invisible node
-            if in_body:
-                additional_branches.append(-1)
+            # if in_body:
+            #     additional_branches.append(-1)
         else:
             additional_branches.append(self.if_false_line_num)
 
@@ -943,6 +947,11 @@ class IfThenElse(Statement):
             for statement in self.if_false:
                 if is_visual_branch(statement):
                     additional_branches.extend(statement.get_branch_numbers(True))
+
+        if type(self.if_false) is Block:
+            if type(self.if_false[-1]) is IfThenElse:
+                    if self.if_false[-1].if_false is None:
+                        del additional_branches[-1]
 
 
         return [self.line_num] + additional_branches
@@ -1108,8 +1117,8 @@ class While(Statement):
             if self.body[-1].if_false is None:
                 del branches[-1]
 
-        if in_body:
-            branches.extend([-1])
+        # if in_body:
+        #     branches.extend([-1])
 
         branches.extend([-1, -1])
         return branches

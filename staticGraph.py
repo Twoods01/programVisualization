@@ -158,8 +158,10 @@ class StaticGraph(graphInterface):
 
         return index
 
-    def handle_non_user_methods_in_current_branch(self, method_to_find):
-        print("Adding methods in branch " + str(self.cur_branch) + " looking for " + method_to_find)
+    #Adds all non-user methods in the current branch into the animation path, up to |method_to_find|
+    # if |method_to_find| is empty it adds the entire branch
+    # return True if a return was found, false otherwise
+    def handle_non_user_methods_in_current_branch(self, method_to_find = ""):
         #Need to account for non-user methods in the branch, which have no corresponding print
         while self.cur_branch_index < len(self.nodes[self.cur_branch]) and \
                         self.nodes[self.cur_branch][self.cur_branch_index].method.name != method_to_find:
@@ -170,13 +172,20 @@ class StaticGraph(graphInterface):
                 self.animation_path.append(new_node)
             #If we've hit a return then stop
             if self.nodes[self.cur_branch][self.cur_branch_index].method.name == "Return":
-                break
+                return True
             self.cur_branch_index += 1
+
+        return False
 
     #Callback used by animation dots
     def update_active_node(self, node):
         self.active_node = node
         del self.animation_path[0]
+
+        #Done with the current method and not step into, turn off auto-play
+        if self.active_node.method.name == "Return":
+            if not self.dot.step_into:
+                self.auto_play = False
 
     #Move the animation forward to the next node, called from main when spacebar pressed
     # and callback from animation_dot when it needs a new target
@@ -230,24 +239,22 @@ class StaticGraph(graphInterface):
         if self.active_node.method.name == "Return":
             return
 
-        new_branch = None
+        new_branches = []
         exited_method = False
         #Find the next print out relating to a new method call
         try:
             while True:
                 next_method_print = self.flow[self.cur_index].split(" ")
-                print(self.flow[self.cur_index])
                 self.cur_index += 1
 
                 #New branch
                 if next_method_print[0] == "branch":
-                    new_branch = int(next_method_print[1])
+                    new_branches.append(int(next_method_print[1]))
                 #New method call
                 elif next_method_print[0] == "push":
                     break
                 #Returning from this method
                 elif "pop " + self.current.method.name in self.flow[self.cur_index - 1]:
-                    exited_method = True
                     break
 
         #We've gone past the end of the file
@@ -257,189 +264,69 @@ class StaticGraph(graphInterface):
             self.animation_path.append(self.nodes[-1][-1])
             return
 
-        #We exited the method
-        if exited_method:
-            print("Exited")
-            #Changed branches need to find path
-            if new_branch:
-                print("New branch")
-                print("Trying to get to branch " + str(new_branch))
-                while self.cur_branch != new_branch:
-                    #Anything remaining in current branch
-                    self.handle_non_user_methods_in_current_branch("")
-                    #Follow bottom branch out of this branch
-                    self.nodes[self.cur_branch][self.cur_branch_index - 1].write()
-                    if self.nodes[self.cur_branch][self.cur_branch_index - 1].child_branches[0] == new_branch:
-                        self.cur_branch = self.nodes[self.cur_branch][self.cur_branch_index - 1].child_branches[0]
-                    else:
-                        self.cur_branch = self.nodes[self.cur_branch][self.cur_branch_index - 1].child_branches[-1]
-                    self.cur_branch_index = 0
+        #If we've gone through any new branches their numbers will be in this array, need to find our way to the branch
+        # and add everything in it, unless it's the last branch which is where the method we're trying to find is
+        for i, branch in enumerate(new_branches):
+            loop = False
 
-                #Everything in the final branch
-                self.handle_non_user_methods_in_current_branch("")
+            #Handle loops, need to save the original branch we are trying to get to as well as calculate the back
+            # edge we will be taking
+            if branch <= self.cur_branch:
+                back_branch_node = self.nodes[branch - 1][0]
+                loop = True
+                branch = back_branch_node.child_branches[0]
 
-                #Make sure that the branch we ended up in actually contains the method
-                if not any(map(lambda x: x.method.name == "Return", self.nodes[new_branch])):
-                    while True:
-                        self.cur_branch = self.nodes[self.cur_branch][-1].child_branches[-1]
-                        self.cur_branch_index = 0
-                        if not any(map(lambda x: x.method.name == "Return", self.nodes[self.cur_branch])):
-                            self.handle_non_user_methods_in_current_branch("")
-                        else:
-                            break
-                        print(map(lambda x: x.method.name, self.animation_path))
+            #Find path to the branch
+            while self.cur_branch != branch:
+                #Add everything in the current branch
+                if self.handle_non_user_methods_in_current_branch():
+                    break
+
+                #If we can get to our target branch from where we currently are
+                if branch in self.nodes[self.cur_branch][-1].child_branches:
+                    self.cur_branch = branch
+                #Otherwise take the bottom (InvisibleNode) branch unless it goes past our target
+                elif self.nodes[self.cur_branch][-1].child_branches[-1] > branch:
+                        self.cur_branch = self.nodes[self.cur_branch][-1].child_branches[0]
                 else:
-                    #Update current branch
-                    self.cur_branch = new_branch
-                    self.cur_branch_index = 0
+                    self.cur_branch = self.nodes[self.cur_branch][-1].child_branches[-1]
 
-                #Get anything in new branch before actual method
-                self.handle_non_user_methods_in_current_branch("Return")
-
-                self.animation_path.append(self.nodes[self.cur_branch][self.cur_branch_index])
-                print(map(lambda x: x.method.name, self.animation_path))
-
-            #Haven't changed branches add everything left in the current branch
-            else:
-                print("No new branch")
-                self.animation_path.extend(self.nodes[self.cur_branch][self.cur_branch_index + 1:])
-
-        else:
-            #Branch hasn't changed and there's more nodes in this branch
-            if not new_branch and self.cur_branch_index < len(self.nodes[self.cur_branch]) - 1:
-                print("Normal shizz")
-                self.cur_branch_index += 1
-                self.handle_non_user_methods_in_current_branch(next_method_print[1])
-
-                #Make sure that the branch we ended up in actually contains the method
-                if not any(map(lambda x: x.method.name == next_method_print[1], self.nodes[self.cur_branch])):
-                    while True:
-                        self.cur_branch = self.nodes[self.cur_branch][-1].child_branches[-1]
-                        self.cur_branch_index = 0
-                        if not any(map(lambda x: x.method.name == next_method_print[1], self.nodes[self.cur_branch])):
-                            self.handle_non_user_methods_in_current_branch("")
-                        else:
-                            break
-
-                #Get anything in new branch before actual method
-                self.handle_non_user_methods_in_current_branch(next_method_print[1])
-             #Ran out of nodes in this branch without a new branch printout, this means we
-            # took a branch with an invisible node
-            elif not new_branch:
-                print("No new branch")
-                #Get everything remaining from current branch
-                self.handle_non_user_methods_in_current_branch("")
-                print(map(lambda x: x.method.name, self.animation_path))
-
-                #Get the branch number for the invisible branch we took
-                invis_node_branch = self.active_node.child_branches[-1]
-                #Add the invisible node
-                self.animation_path.append(self.nodes[invis_node_branch][0])
-                print(map(lambda x: x.method.name, self.animation_path))
-
-                #Follow the invisible branch to it's child
-                self.cur_branch = self.nodes[invis_node_branch][0].child_branches[0]
                 self.cur_branch_index = 0
 
-                #Make sure that the branch we ended up in actually contains the method
-                if not any(map(lambda x: x.method.name == next_method_print[1], self.nodes[self.cur_branch])):
-                    while True:
-                        self.cur_branch = self.nodes[self.cur_branch][-1].child_branches[-1]
-                        self.cur_branch_index = 0
-                        if not any(map(lambda x: x.method.name == next_method_print[1], self.nodes[self.cur_branch])):
-                            self.handle_non_user_methods_in_current_branch("")
-                        else:
-                            break
-
-                #Get anything in new branch before actual method
-                self.handle_non_user_methods_in_current_branch(next_method_print[1])
-                print(map(lambda x: x.method.name, self.animation_path))
-
-            #Branch changed
-            #If the new branch is smaller then we went backwards in the file, aka a loop
-            elif new_branch <= self.cur_branch:
-                print("Back branch trying to get to " + str(new_branch) + " from " + str(self.cur_branch) + " " + next_method_print[1])
-                back_branch_node = self.nodes[new_branch - 1][0]
-                #Find the path which leads to a node who has a parent which is the back_branch_node
-                print("Branch " + str(self.cur_branch) + " Index " + str(self.cur_branch_index))
-                while not back_branch_node in self.nodes[self.cur_branch][self.cur_branch_index].parents:
-                    #Anything remaining in current branch
-                    self.handle_non_user_methods_in_current_branch("")
-                    print(map(lambda x: x.method.name, self.animation_path))
-                    self.cur_branch = self.nodes[self.cur_branch][-1].child_branches[-1]
-                    self.cur_branch_index = 0
-                    print("Branch " + str(self.cur_branch) + " Index " + str(self.cur_branch_index))
-
-                # #Get the repeat node, it is the first node in this nodes child branch
-                self.animation_path.append(self.nodes[back_branch_node.child_branches[0]][0])
-                print(map(lambda x: x.method.name, self.animation_path))
-                self.cur_branch = new_branch
-                #Get the back edge, it should always be the previous branch
+            #If this is a loop, we now have the path to the branch containing repeat and loopEnd
+            if loop:
+                #Add repeat
+                self.animation_path.append(self.nodes[self.cur_branch][0])
+                #Add the back_branch_node
                 self.animation_path.append(back_branch_node)
-                print(map(lambda x: x.method.name, self.animation_path))
-                #Get the loop start, it should always be the last node 2 branches prior
-                self.animation_path.append(self.nodes[self.cur_branch - 2][-1])
-                print(map(lambda x: x.method.name, self.animation_path))
+                #Add loop start
+                self.animation_path.append(back_branch_node.parents[0])
+                #Update branches
+                self.cur_branch = back_branch_node.parents[0].child_branches[-1]
+                self.cur_branch_index = 0
 
-                #Get non-user methods up to the actual method
-                self.handle_non_user_methods_in_current_branch(next_method_print[1])
+        #Since branches can change without print-outs, need to verify that the branch we ended in actually contains
+        # the method we're looking for
+        while not next_method_print[1] in map(lambda x: x.method.name, self.nodes[self.cur_branch]):
+            #Add everything in current method
+            if self.handle_non_user_methods_in_current_branch():
+                break
 
-            #Standard new forward branch
-            elif new_branch > self.cur_branch:
-                print("Forward Branch trying to get to " + str(new_branch) + " " + next_method_print[1])
-                #Get everything remaining from current branch
-                self.handle_non_user_methods_in_current_branch("")
-                print(map(lambda x: x.method.name, self.animation_path))
-                #We may have jumped through some invisible nodes along the way
-                while not new_branch in self.nodes[self.cur_branch][-1].child_branches:
-                    #Get the branch number for the invisible branch we took
-                    possible_branches = self.nodes[self.cur_branch][-1].child_branches
+            #Follow the last branch out
+            self.cur_branch = self.nodes[self.cur_branch][-1].child_branches[-1]
+            self.cur_branch_index = 0
 
-                    invis_node_branch = possible_branches[-1]
-                    #If we're starting a loop we can actually miss prints in both directions,
-                    # check if we should follow the top branch
-                    if invis_node_branch > new_branch:
-                        invis_node_branch = possible_branches[0]
-
-                    #Add the invisible node
-                    #self.animation_path.append(self.nodes[invis_node_branch][0])
-                    self.handle_non_user_methods_in_current_branch("")
-                    print(map(lambda x: x.method.name, self.animation_path))
-
-                    #Follow the invisible branch to it's child
-                    self.cur_branch = invis_node_branch
-                    self.cur_branch_index = 0
-
-                self.handle_non_user_methods_in_current_branch("")
-                print(map(lambda x: x.method.name, self.animation_path))
-
-                #Make sure that the branch we ended up in actually contains the method
-                if not any(map(lambda x: x.method.name == next_method_print[1], self.nodes[new_branch])):
-                    while True:
-                        self.cur_branch = self.nodes[self.cur_branch][-1].child_branches[-1]
-                        self.cur_branch_index = 0
-                        if not any(map(lambda x: x.method.name == next_method_print[1], self.nodes[self.cur_branch])):
-                            self.handle_non_user_methods_in_current_branch("")
-                        else:
-                            break
-                else:
-                    #Update current branch
-                    self.cur_branch = new_branch
-                    self.cur_branch_index = 0
-
-                #Get anything in new branch before actual method
-                self.handle_non_user_methods_in_current_branch(next_method_print[1])
-                print(map(lambda x: x.method.name, self.animation_path))
-
-            #Add the actual method
-            print("Adding " + str(self.nodes[self.cur_branch][self.cur_branch_index].method.name) + " from " + str(self.cur_branch) + ":" + str(self.cur_branch_index))
+        if not "Return" in map(lambda x: x.method.name, self.animation_path):
+            #Add everything in the final branch, up to the method
+            self.handle_non_user_methods_in_current_branch(next_method_print[1])
+            #Add the method
             self.animation_path.append(self.nodes[self.cur_branch][self.cur_branch_index])
 
-            #Jump ahead to when the method we just entered gets popped
-            if not self.dot.step_into:
-                self.cur_index = self.find_corresponding_pop(next_method_print[1], next_method_print[2])
-            else:
-                self.prev_index = 0
+        #Jump ahead to when the method we just entered gets popped
+        if not self.dot.step_into:
+            self.cur_index = self.find_corresponding_pop(next_method_print[1], next_method_print[2])
+        else:
+            self.prev_index = 0
         return
 
     #Recursively chains branched_node_array together, returns the parents of the previous branch
@@ -650,7 +537,6 @@ class StaticGraph(graphInterface):
         cam.set_pos(self.active_node.x, self.active_node.y)
 
         self.dot.place(self.active_node.x, self.active_node.y)
-        self.print_branched_nodes()
 
     #Mouse click
     def handle_input(self, x, y, cam, window):

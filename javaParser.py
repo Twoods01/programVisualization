@@ -385,7 +385,6 @@ class Javap:
         self.separate_subsequent_branches(branch_array)
         return branch_array
 
-
     #Check the array to ensure there is no situation with 2 subsequent branches with no method calls between them
     # if there are, add an invisible node between
     def separate_subsequent_branches(self, branch_array):
@@ -406,7 +405,6 @@ class Javap:
                         branch_array.insert(i + 1, m.MethodInvocation("InvisibleNode"))
 
         return branch_array
-
 
     def get_all_objects(self):
         objs = []
