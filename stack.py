@@ -30,7 +30,7 @@ class Stack():
     #returns the method which was clicked or none if the coordinates are not part of the stack
     def get_clicked_item(self, x, y):
         for frame in self.stack:
-            if frame.node.hit(x, y, 0, 0):
+            if frame.node.hit(x, y):
                 return frame.node
         return None
 

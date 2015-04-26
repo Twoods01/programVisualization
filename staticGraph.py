@@ -591,12 +591,14 @@ class StaticGraph(graphInterface):
         return branches
 
     #Need to handle cam zoom somehow
+    #Mouse move
     def handle_mouse(self, x, y, cam):
+        #x_trans, y_trans = cam.translate(x, y)
         self.invis_node = None
         inside_node = False
         for branch in self.nodes:
             for node in branch:
-                if node.hit(x, y, cam.x, cam.y):
+                if node.hit(x, y):
                     inside_node = True
                     fields = self.parsed.get_fields_in_method(node.method)
                     self.data.highlight(fields)
@@ -652,10 +654,10 @@ class StaticGraph(graphInterface):
 
     #Mouse click
     def handle_input(self, x, y, cam, window):
-
+        x_trans, y_trans = cam.translate(x, y)
         for branch in self.nodes:
             for node in branch:
-                if node.hit(x, y, cam.x, cam.y):
+                if node.hit(x_trans, y_trans):
                     method = filter(lambda x: x.name == node.method.name, self.methods)
                     if len(method) > 0:
                         self.enter_new_method(Node(method[0]), cam, window, True)

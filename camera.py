@@ -2,6 +2,7 @@ __author__ = 'twoods0129'
 import pyglet.gl
 import node
 
+
 class Camera():
     def __init__(self, width, height):
         self.x = 0
@@ -19,6 +20,18 @@ class Camera():
     def get_offset(self):
         return self.x, self.y
 
+    def translate(self, x, y):
+        print("Original coordinates (" + str(x) + ", " + str(y) + ")")
+        dist_center_x = x - (self.width / 2)
+        dist_center_y = y - (self.height / 2)
+        trans_x = (x + self.x) + (dist_center_x * ((1 - self.zoom) / self.zoom))
+
+        print("are (" + str(dist_center_x) + ", " + str(dist_center_y) + ") away from center")
+        trans_y = (y + self.y) + (dist_center_y * ((1 - self.zoom) / self.zoom))
+        print("Translated coordinates (" + str(trans_x) + ", " + str(trans_y) + ")")
+
+        return trans_x, trans_y
+
     def reset(self):
         self.x = 0
         self.y = 0
@@ -31,9 +44,9 @@ class Camera():
 
     def standard_projection(self):
         pyglet.gl.glLoadIdentity()
-        pyglet.gl.glTranslatef(self.width / 2 + node.node_width / 2, self.height / 2 + node.node_height / 2, 0)
+        pyglet.gl.glTranslatef(self.width / 2, self.height / 2, 0)
         pyglet.gl.glScalef(self.zoom, self.zoom, self.zoom)
-        pyglet.gl.glTranslatef(-(self.width / 2 + node.node_width / 2), -(self.height / 2 + node.node_height / 2), 0)
+        pyglet.gl.glTranslatef(-self.width / 2, -self.height / 2, 0)
         pyglet.gl.glTranslatef(-self.x, -self.y, -self.z)
 
     def center_on(self, x, y):

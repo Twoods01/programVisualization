@@ -101,9 +101,9 @@ class Node:
         return vm.normalize(map(op.sub, (node.x, node.y), (self.x, self.y)))
 
     #Given x, y coordinate and current camera position determine if that coordinate is inside the node
-    def hit(self, x, y, camx, camy):
-        return x > self.x - camx - x_offset  and x < self.x + node_width - camx - x_offset\
-               and y > self.y - camy - y_offset and y < self.y + node_height - camy - y_offset
+    def hit(self, x, y):
+        return x > self.x - x_offset  and x < self.x + node_width - x_offset\
+               and y > self.y - y_offset and y < self.y + node_height - y_offset
 
     #Connect current node to |node|
     def connect(self, color=[237, 255, 228]):

@@ -27,15 +27,12 @@ def main(argv):
 
     directory = "s1"
     visualization = StaticGraph
-    p_args = None#"tinyTest.txt"
+    p_args = None
     program_flow_file = None
     timeout = None
     processing = True
-    print(opts)
-    print(args)
 
     for opt, arg in opts:
-        print(arg)
         if opt == "-h":
             print("main.py -f <flow_file> <directory> <program_args>")
             return
@@ -145,7 +142,6 @@ def main(argv):
             if graph.invis_node:
                 graph.invis_node.y -= 50
         if keys[key.D]:
-            print("Moving Right")
             cam.x += 50
             if graph.invis_node:
                 graph.invis_node.x += 50
