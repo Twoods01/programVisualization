@@ -2,6 +2,7 @@ __author__ = 'twoods0129'
 from javaParser import *
 from staticGraph import *
 import pyglet, sys, getopt
+from pyglet.window import key
 import camera
 
 control_color = (150, 150, 150)
@@ -19,33 +20,40 @@ scroll_buffer = 10
 
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv,"d", [])
+        opts, args = getopt.getopt(argv,"hf:")
     except getopt.GetoptError:
-        print("main.py -d <directory>")
+        print("main.py -f <flow_file> <directory> <program_args>")
         sys.exit(2)
 
     directory = "s1"
     visualization = StaticGraph
-    args = "tinyTest.txt"
+    p_args = None#"tinyTest.txt"
     program_flow_file = None
     timeout = None
     processing = True
+    print(opts)
+    print(args)
 
-    # for opt, arg in opts:
-    #     if opt == "-d":
-    #         directory = arg
-    #     elif opt == "-s":
-    #         pass
-    #         #visualization = InteractiveGraph
+    for opt, arg in opts:
+        print(arg)
+        if opt == "-h":
+            print("main.py -f <flow_file> <directory> <program_args>")
+            return
+        elif opt == "-f":
+            program_flow_file = arg
+            print("flow set to " + program_flow_file)
 
-    if directory is None:
-        print("main.py -d <directory>")
-        sys.exit(2)
+    if len(args) < 1:
+        print("main.py -f <flow_file> <directory> <program_args>")
+        return
+
+    directory = args[0]
+    p_args = " ".join(args[1:])
 
     window = pyglet.window.Window(1200, 700)
     cam = camera.Camera(window.width, window.height)
 
-    parsed = Javap(directory, args)
+    parsed = Javap(directory, p_args)
     global graph
     if visualization.isDynamic:
         parsed.markup_file()
@@ -53,10 +61,14 @@ def main(argv):
     else:
         parsed.markup_file()
         if program_flow_file:
-            flow_file = open(program_flow_file, "r")
-            flow = []
-            for line in flow_file:
-                flow.append(line)
+            try:
+                flow_file = open(program_flow_file, "r")
+                flow = []
+                for line in flow_file:
+                    flow.append(line)
+            except IOError:
+                print("Unable to open file " + program_flow_file)
+                return
         else:
             flow = parsed.run_file()
             flow_file = open(parsed.main.name.split("/")[-1] + ".flow", "w")
@@ -67,19 +79,6 @@ def main(argv):
     #parsed.cleanup()
 
     fps_display = pyglet.clock.ClockDisplay()
-
-    @window.event
-    def on_draw():
-        pyglet.clock.tick()
-        window.clear()
-        cam.standard_projection()
-        graph.draw(cam)
-        cam.hud_projection()
-        graph.draw_UI()
-        # if visualization.isDynamic:
-        #     draw_UI(window)
-        fps_display.draw()
-
 
     @window.event
     def on_mouse_press(x, y, button, modifiers):
@@ -98,7 +97,6 @@ def main(argv):
             else:
                 graph.handle_input(x, y, cam, window)
 
-
     @window.event
     def on_key_press(symbol, modifiers):
         if symbol == pyglet.window.key.LEFT:
@@ -112,22 +110,6 @@ def main(argv):
                 cam.zoom -= .1
         elif symbol == pyglet.window.key.F:
             graph.build_final()
-        elif symbol == pyglet.window.key.W:
-            cam.y += 50
-            if graph.invis_node:
-                graph.invis_node.y += 50
-        elif symbol == pyglet.window.key.S:
-            cam.y -= 50
-            if graph.invis_node:
-                graph.invis_node.y -= 50
-        elif symbol == pyglet.window.key.A:
-            cam.x -= 50
-            if graph.invis_node:
-                graph.invis_node.x -= 50
-        elif symbol == pyglet.window.key.D:
-            cam.x += 50
-            if graph.invis_node:
-                graph.invis_node.x += 50
         elif symbol == pyglet.window.key.SPACE:
             graph.auto_play = not graph.auto_play
             graph.animation_forward()
@@ -144,6 +126,41 @@ def main(argv):
 
         elif in_node:
             mouse_previously_inside_node = True
+
+    #This has to be after the key press handler, dumb pyglet
+    keys = key.KeyStateHandler()
+    window.push_handlers(keys)
+
+    @window.event
+    def on_draw():
+        pyglet.clock.tick()
+        window.clear()
+
+        if keys[key.W]:
+            cam.y += 50
+            if graph.invis_node:
+                graph.invis_node.y += 50
+        if keys[key.S]:
+            cam.y -= 50
+            if graph.invis_node:
+                graph.invis_node.y -= 50
+        if keys[key.D]:
+            print("Moving Right")
+            cam.x += 50
+            if graph.invis_node:
+                graph.invis_node.x += 50
+        if keys[key.A]:
+            cam.x -= 50
+            if graph.invis_node:
+                graph.invis_node.x -= 50
+
+        cam.standard_projection()
+        graph.draw(cam)
+        cam.hud_projection()
+        graph.draw_UI()
+        # if visualization.isDynamic:
+        #     draw_UI(window)
+        fps_display.draw()
 
     pyglet.clock.schedule_interval(update, speed)
     pyglet.clock.set_fps_limit(frame_rate)
