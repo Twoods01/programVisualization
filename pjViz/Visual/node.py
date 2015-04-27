@@ -2,7 +2,7 @@ __author__ = 'twoods0129'
 
 import operator as op
 import pyglet
-import Utils.vectorMath as vm
+import pjViz.Utils.vectorMath as vm
 
 init_radius = 150
 node_height = 70

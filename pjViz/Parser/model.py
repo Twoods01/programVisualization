@@ -1,4 +1,4 @@
-import Utils.arrayUtils as au
+import pjViz.Utils.arrayUtils as au
 
 def is_branch(statement):
     if type(statement) is IfThenElse or (type(statement) is Assignment and type(statement.rhs) is Conditional):

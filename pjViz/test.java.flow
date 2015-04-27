@@ -1,0 +1,86 @@
+push main test 1
+push branchTesting test 1
+branch 2
+push Three test 1
+pop Three test 1
+push One test 1
+pop One test 1
+push Two test 1
+pop Two test 1
+branch 12
+push Six test 1
+pop Six test 1
+branch 13
+pop branchTesting test 1
+push nestedLoop test 1
+push One test 1
+pop One test 1
+branch 1
+branch 4
+push One test 1
+pop One test 1
+branch 7
+push Two test 1
+pop Two test 1
+branch 7
+push Two test 1
+pop Two test 1
+branch 7
+push Two test 1
+pop Two test 1
+branch 4
+push One test 1
+pop One test 1
+branch 13
+pop nestedLoop test 1
+push recursiveString test 1
+push test test 1
+pop test test 1
+push test test 1
+pop test test 1
+pop recursiveString test 1
+push addNumbersInString test 1
+push nothing test 1
+branch 3
+push decrementNumber test 1
+pop decrementNumber test 1
+branch 3
+push decrementNumber test 1
+pop decrementNumber test 1
+branch 3
+push decrementNumber test 1
+pop decrementNumber test 1
+branch 3
+push decrementNumber test 1
+pop decrementNumber test 1
+branch 3
+push decrementNumber test 1
+pop decrementNumber test 1
+branch 6
+pop nothing test 1
+branch 3
+push addNumbers test 1
+pop addNumbers test 1
+branch 3
+push addNumbers test 1
+pop addNumbers test 1
+pop addNumbersInString test 1
+push nothing test 1
+branch 3
+push decrementNumber test 1
+pop decrementNumber test 1
+branch 3
+push decrementNumber test 1
+pop decrementNumber test 1
+branch 3
+push decrementNumber test 1
+pop decrementNumber test 1
+branch 3
+push decrementNumber test 1
+pop decrementNumber test 1
+branch 3
+push decrementNumber test 1
+pop decrementNumber test 1
+branch 6
+pop nothing test 1
+pop main test 1

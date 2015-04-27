@@ -1,6 +1,6 @@
 __author__ = 'twoods0129'
 import pyglet.gl
-import Visual.node
+import pjViz.Visual.node
 
 
 class Camera():

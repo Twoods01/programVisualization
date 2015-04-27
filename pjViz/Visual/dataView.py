@@ -1,5 +1,5 @@
 __author__ = 'twoods0129'
-from Parser.model import FieldDeclaration
+from pjViz.Parser.model import FieldDeclaration
 import pyglet
 
 class DataView():

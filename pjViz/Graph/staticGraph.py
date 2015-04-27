@@ -1,12 +1,12 @@
 __author__ = 'twoods0129'
 
-from Visual.node import *
+from pjViz.Visual.node import *
 from pyglet.gl import *
 from graphInterface import *
-from Parser.model import MethodDeclaration, MethodInvocation
-from Visual.stack import *
-import Visual.dataView as dv
-import Utils.arrayUtils, Visual.animationDot
+from pjViz.Parser.model import MethodDeclaration, MethodInvocation
+from pjViz.Visual.stack import *
+import pjViz.Visual.dataView as dv
+import pjViz.Utils.arrayUtils, pjViz.Visual.animationDot
 
 
 standard_color = (204, 127, 93)
@@ -36,7 +36,7 @@ class StaticGraph(graphInterface):
         self.active_node = None
         self.animation_path = []
         self.auto_play = False
-        self.dot = Visual.animationDot.AnimationDot(self.animation_forward, self.update_active_node)
+        self.dot = pjViz.Visual.animationDot.AnimationDot(self.animation_forward, self.update_active_node)
         self.frames = 0
 
         #Array of MethodDeclarations
@@ -203,7 +203,7 @@ class StaticGraph(graphInterface):
                 #Make sure the method we're supposed to be entering is the one we're on, this is the if check pre-emption issue
                 method_to_enter = self.flow[self.cur_index - 1].split(" ")[1]
                 if self.active_node.method.name == method_to_enter:
-                    self.enter_new_method(Node(method[0]), self.cam, self.window, True, True)
+                    self.enter_new_method(Node(method[0]), entering=True, in_animation=True)
 
                 self.dot.wait()
                 return
@@ -221,7 +221,7 @@ class StaticGraph(graphInterface):
                 except IndexError:
                     return
 
-                self.enter_new_method(frame.node, self.cam, self.window, False, True)
+                self.enter_new_method(frame.node, entering=False, in_animation=True)
                 self.dot.wait()
                 return
             else:
@@ -360,7 +360,7 @@ class StaticGraph(graphInterface):
                 #Recurse on the path, store the returned final_node and add it to our new parent set
                 final_nodes_in_branch, branch_num = self.chain_nodes(branch, parent_nodes, x, y, branch_num + 1)
                 #Filter out nodes with method name Return, as this stops execution
-                new_parents.extend(filter(lambda x: x.method.name != "Return", Utils.arrayUtils.flatten(final_nodes_in_branch)))
+                new_parents.extend(filter(lambda x: x.method.name != "Return", pjViz.Utils.arrayUtils.flatten(final_nodes_in_branch)))
 
                 #Calculate half of the height of this path and the next path if there is one
                 half_height_this_branch = (((self.count_branches(branch) + 1) * (node_height + vertical_buffer)) / 2)

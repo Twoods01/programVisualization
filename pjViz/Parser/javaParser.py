@@ -9,8 +9,7 @@ import shutil
 import os
 from os import walk
 import cStringIO
-import threading
-import Utils.arrayUtils as arrayUtils
+import pjViz.Utils.arrayUtils as arrayUtils
 
 def timeout(process):
     if process.poll is None:
@@ -261,15 +260,9 @@ class Javap:
                 print(line)
 
         #Run the file
-        print("Running  " + "java -cp " + classpath + " " + file_array[-1].replace(".java", "") + " " + self.args)
         java = subprocess.Popen("java -cp " + classpath + " " + file_array[-1].replace(".java", "") + " " + self.args,
           shell=True,
           stdout=subprocess.PIPE)
-
-        # if timeout:
-        #     t = threading.Timer(timeout, timeout, [java])
-        #     t.start()
-        #     t.join()
 
         #Go through each line of output and add print statements to program_flow
         program_flow = []

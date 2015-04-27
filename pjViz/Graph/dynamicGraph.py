@@ -1,6 +1,6 @@
 import math
-import Utils.vectorMath as vm
-from Visual.node import *
+import pjViz.Utils.vectorMath as vm
+from pjViz.Visual.node import *
 from pyglet.gl import *
 from graphInterface import *
 
