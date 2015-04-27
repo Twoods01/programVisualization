@@ -4,7 +4,8 @@ This program generates a visualization of an input java program
 
 Download the zip, unzip and run "sudo pip install pjViz" from the root of the directory
 
-Run the program with pjViz -f \<flow_file> \<directory> \<program_args>
+Run the program with pjViz -f \<flow_file> \<directory> \<program_args>  
+For example from this directory: pjViz test
   * The flow file is optional, and will be generated for you after running a program once, this reduces load times for large programs
   * directory should contain the java program you want run
   * anything passed after the directory will be treated as the java program arguments and passed directly through
