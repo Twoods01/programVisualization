@@ -1,10 +1,12 @@
 # programVisualization
 
-This program generates a visualization of an input java program  
+This program generates a visualization of an input java program
 
-Run the program with python main.py -f <flow_file> <directory> <program_args>
+Download the zip, unzip and run "sudo pip install pjViz" from the root of the directory
+
+Run the program with python pjViz -f <flow_file> <directory> <program_args>
   * The flow file is optional, and will be generated for you after running a program once, this reduces load times for large programs
-  * directory should contain the java program you want run, and should be located within the directory of this program, any resource files used by the java program must manually be copied out of it's directory and into this one
+  * directory should contain the java program you want run
   * anything passed after the directory will be treated as the java program arguments and passed directly through
 
 Controls:

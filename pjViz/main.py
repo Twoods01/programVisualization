@@ -22,7 +22,7 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv,"hf:")
     except getopt.GetoptError:
-        print("main.py -f <flow_file> <directory> <program_args>")
+        print("pjViz -f <flow_file> <directory> <program_args>")
         sys.exit(2)
 
     directory = "s1"
@@ -34,14 +34,14 @@ def main(argv):
 
     for opt, arg in opts:
         if opt == "-h":
-            print("main.py -f <flow_file> <directory> <program_args>")
+            print("pjViz -f <flow_file> <directory> <program_args>")
             return
         elif opt == "-f":
             program_flow_file = arg
             print("flow set to " + program_flow_file)
 
     if len(args) < 1:
-        print("main.py -f <flow_file> <directory> <program_args>")
+        print("pjViz -f <flow_file> <directory> <program_args>")
         return
 
     directory = args[0]
