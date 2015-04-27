@@ -1,9 +1,9 @@
 __author__ = 'twoods0129'
-from javaParser import *
-from staticGraph import *
+from Parser.javaParser import *
+from Graph.staticGraph import *
 import pyglet, sys, getopt
 from pyglet.window import key
-import camera
+import Utils.camera
 
 control_color = (150, 150, 150)
 progress_bar_color = (45, 45, 45)
@@ -48,7 +48,7 @@ def main(argv):
     p_args = " ".join(args[1:])
 
     window = pyglet.window.Window(1200, 700)
-    cam = camera.Camera(window.width, window.height)
+    cam = Utils.camera.Camera(window.width, window.height)
 
     parsed = Javap(directory, p_args)
     global graph
@@ -92,7 +92,7 @@ def main(argv):
                     animation_playing = False
                     graph.step_backward()
             else:
-                graph.handle_input(x, y, cam, window)
+                graph.handle_input(x, y)
 
     @window.event
     def on_key_press(symbol, modifiers):
@@ -116,7 +116,7 @@ def main(argv):
     @window.event
     def on_mouse_motion(x, y, dx, dy):
         global mouse_previously_inside_node
-        in_node = graph.handle_mouse(x, y, cam)
+        in_node = graph.handle_mouse(x, y)
         if mouse_previously_inside_node and not in_node:
             mouse_previously_inside_node = False
             graph.data.clear_highlights()
@@ -151,7 +151,7 @@ def main(argv):
                 graph.invis_node.x -= 50
 
         cam.standard_projection()
-        graph.draw(cam)
+        graph.draw()
         cam.hud_projection()
         graph.draw_UI()
         # if visualization.isDynamic:
