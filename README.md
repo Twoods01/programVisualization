@@ -2,7 +2,7 @@
 
 This program generates a visualization of an input java program
 
-Download the zip, unzip and run "sudo pip install pjViz" from the root of the directory
+Download the zip, unzip and run "sudo pip install ." from the root of the directory
 
 Run the program with pjViz -f \<flow_file> \<directory> \<program_args>  
 For example from this directory: pjViz test
