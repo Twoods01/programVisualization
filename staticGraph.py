@@ -322,11 +322,12 @@ class StaticGraph(graphInterface):
             #Add the method
             self.animation_path.append(self.nodes[self.cur_branch][self.cur_branch_index])
 
-        #Jump ahead to when the method we just entered gets popped
-        if not self.dot.step_into:
-            self.cur_index = self.find_corresponding_pop(next_method_print[1], next_method_print[2])
-        else:
-            self.prev_index = 0
+            #Jump ahead to when the method we just entered gets popped
+            if not self.dot.step_into:
+                self.cur_index = self.find_corresponding_pop(next_method_print[1], next_method_print[2])
+            else:
+                self.prev_index = 0
+
         return
 
     #Recursively chains branched_node_array together, returns the parents of the previous branch
@@ -521,7 +522,6 @@ class StaticGraph(graphInterface):
             if self.prev_index != 0:
                 self.cur_index = self.prev_index
                 self.prev_index = 0
-            print("Stepping in with flow @ " + str(self.cur_index) + " is " + self.flow[self.cur_index])
             self.cur_branch = self.cur_branch_index = 0
         else:
             frame = self.stack.pop_to(node)
@@ -530,6 +530,7 @@ class StaticGraph(graphInterface):
                 self.cur_branch_index = frame.index
             else:
                 self.cur_branch = self.cur_branch_index = 0
+
         self.data.add_params(node.method.parameters)
 
         self.place_nodes(window, in_animation)

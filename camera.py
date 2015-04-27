@@ -21,14 +21,10 @@ class Camera():
         return self.x, self.y
 
     def translate(self, x, y):
-        print("Original coordinates (" + str(x) + ", " + str(y) + ")")
         dist_center_x = x - (self.width / 2)
         dist_center_y = y - (self.height / 2)
         trans_x = (x + self.x) + (dist_center_x * ((1 - self.zoom) / self.zoom))
-
-        print("are (" + str(dist_center_x) + ", " + str(dist_center_y) + ") away from center")
         trans_y = (y + self.y) + (dist_center_y * ((1 - self.zoom) / self.zoom))
-        print("Translated coordinates (" + str(trans_x) + ", " + str(trans_y) + ")")
 
         return trans_x, trans_y
 

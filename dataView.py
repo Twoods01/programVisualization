@@ -24,8 +24,6 @@ class DataView():
             y = DataView.initial_y - ((len(self.objects) / DataView.max_nodes_in_row) * 100)
             self.objects.append(self.Object(param, field_array, x, y))
 
-        print("There are " + str(len(self.objects)) + " data objects in this method")
-
     #Given an x, y in pixel space returns a data object that x,y position is inside of, or False if it didnt hit a
     # data object
     def hit(self, x, y):
