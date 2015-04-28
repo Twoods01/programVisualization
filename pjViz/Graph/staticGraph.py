@@ -31,7 +31,9 @@ class StaticGraph(graphInterface):
         self.cur_branch_index = 0
         #Current index into flow
         self.cur_index = 0
-        self.prev_index = 0
+        #Previous index into flow, needed to account for swapping over to into
+        # initialize to anything but 0
+        self.prev_index = 1
         #The currently active node in the animation
         self.active_node = None
         self.animation_path = []
@@ -56,6 +58,7 @@ class StaticGraph(graphInterface):
         self.cam = cam
         self.window = window
         self.place_nodes(window)
+        #Put the dot on start and add main and return to path
         self.dot.place(self.nodes[0][0].x, self.nodes[0][0].y)
         self.animation_path.append(self.nodes[0][1])
         self.animation_path.append(self.nodes[0][2])
