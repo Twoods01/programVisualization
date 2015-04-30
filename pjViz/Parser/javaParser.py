@@ -2,8 +2,8 @@ __author__ = 'twoods0129'
 #!/usr/bin/env python2
 
 import __builtin__ as builtin
-import parser
-import model as m
+import pjViz.Parser.parser
+import pjViz.Parser.model as m
 import subprocess
 import shutil
 import os
@@ -18,17 +18,22 @@ def timeout(process):
 class Javap:
 
     def __init__(self, dir, args):
-        p = parser.Parser()
+        p = pjViz.Parser.parser.Parser()
         self.dir = dir
         self.args = args
-        self.files = {}
+        self.program_files = {}
+        self.resource_files = []
         #Get all files in dir
         for (dirpath, dirnames, filenames) in walk(self.dir):
             file_array = dirpath.split("/")
             if not "markup" in file_array:
                 for file in filenames:
                     if file.endswith(".java"):
-                        self.files[dirpath + "/" + file] = p.parse_file(dirpath + "/" + file)
+                        print("Parsing " + dirpath + "/" + file)
+                        self.program_files[dirpath + "/" + file] = p.parse_file(dirpath + "/" + file)
+                    #Copy over resource files except weird binaries
+                    elif not file.startswith(".") and not file.endswith(".class"):
+                        self.resource_files.append(dirpath + "/" + file)
 
         self.main = None
         self.methods = self.get_all_methods()
@@ -54,7 +59,7 @@ class Javap:
         if not os.path.exists(self.dir + "/markup"):
             os.makedirs(self.dir + "/markup")
 
-        for file_string, parsed_data in self.files.iteritems():
+        for file_string, parsed_data in self.program_files.iteritems():
             print("Marking up " + file_string)
             #Open the file and read in data
             file = open(file_string, "r")
@@ -63,7 +68,7 @@ class Javap:
 
             #Add markup to the file path
             file_array = file_string.split("/")
-            file_array.insert(1, "markup")
+            file_array.insert(-1, "markup")
             markup_file_path = "/".join(file_array[0:len(file_array) - 1])
 
             #Verify the path to this file exists, create if it doesnt
@@ -101,8 +106,7 @@ class Javap:
                     if builtin.type(return_type) is m.Type:
                         return_type = return_type.name.value
 
-                    #The start of the method is considered branch 0 but never marked
-                    branch_num = 1
+
                     #Find all returns in this method
                     for statement in method.body:
                         returns.append(statement.get_returns())
@@ -118,6 +122,10 @@ class Javap:
 
                     return_index = 0
                     previous_was_branch = False
+
+                    #The start of the method is considered branch 0 but never marked
+                    branch_num = 1
+
                     #We need to insert all lines, branches and returns, in order, in one pass
                     for statement in method.body:
                         #If the statement is a branch it has branch_line_nums, an array of line numbers marking
@@ -126,7 +134,8 @@ class Javap:
                             previous_was_branch = True
                             for line in statement.branch_line_nums:
                                 #Make sure we've put all returns which come before this line
-                                while returns[return_index].line_num < line and return_index < len(returns) - 1:
+                                while return_index < len(returns) - 1 and returns[return_index].line_num < line:
+
                                     inserted_lines = self.add_return_print(file_data, returns[return_index], inserted_lines, return_type, method.name, class_name)
                                     return_index += 1
 
@@ -135,15 +144,15 @@ class Javap:
                                                           return_index, return_type, method.name, class_name)
 
                                 #Special equal to case
-                                if returns[return_index].line_num == line:
+                                if return_index < len(returns) - 1 and returns[return_index].line_num == line:
                                     inserted_lines = self.add_return_print(file_data, returns[return_index], inserted_lines, return_type, method.name, class_name)
                                     return_index += 1
 
                         elif previous_was_branch:
                             previous_was_branch = False
-                            # inserted_lines, branch_num, return_index = \
-                            #     self.add_branch_print(file_data, statement.line_num, inserted_lines, branch_num,
-                            #                           returns, return_index, return_type, method.name, class_name)
+                            inserted_lines, branch_num, return_index = \
+                                self.add_branch_print(file_data, statement.line_num, inserted_lines, branch_num,
+                                                      returns, return_index, return_type, method.name, class_name)
 
                     #Make sure we've printed every return
                     while return_index < len(returns):
@@ -163,6 +172,17 @@ class Javap:
                 file.write(line)
 
             file.close()
+
+        #Copy over resource files into markup directory
+        for file_string in self.resource_files:
+            #Add markup to the file path
+            file_array = file_string.split("/")
+            file_array.insert(-1, "markup")
+
+            print("Copying " + file_string + " to " + "/".join(file_array))
+            subprocess.Popen("cp " + file_string + " " + "/".join(file_array),
+                                shell=True,
+                                stdout=subprocess.PIPE)
 
     def add_branch_print(self, file_data, line, inserted_lines, branch_num, returns, return_index, return_type, method_name, class_name):
         return_in_non_block = False
@@ -248,6 +268,8 @@ class Javap:
         if processing:
             classpath += ":" + os.path.abspath(self.dir + "/core.jar")
 
+        print("Compiling with javac -cp " + classpath + " " + os.path.abspath(self.dir + "/markup/" + file_array[-1]))
+
         #Compile the files
         javac = subprocess.Popen("javac -cp " + classpath + " " + os.path.abspath(self.dir + "/markup/" + file_array[-1]),
                                  shell=True,
@@ -259,6 +281,8 @@ class Javap:
             for line in cStringIO.StringIO(errors):
                 print(line)
 
+
+        print("Running java -cp " + classpath + " " + file_array[-1].replace(".java", "") + " " + self.args)
         #Run the file
         java = subprocess.Popen("java -cp " + classpath + " " + file_array[-1].replace(".java", "") + " " + self.args,
           shell=True,
@@ -269,6 +293,8 @@ class Javap:
         for line in cStringIO.StringIO(java.communicate()[0]):
             if "push" in line or "pop" in line or "branch" in line:
                 program_flow.append(line.replace("\n", ""))
+            else:
+                print(line)
 
         # if timeout:
         #     t.cancel()
@@ -281,7 +307,7 @@ class Javap:
 
     def get_all_methods(self):
         methods = []
-        for file_string, parsed_data in self.files.iteritems():
+        for file_string, parsed_data in self.program_files.iteritems():
             methods.append(self.get_methods(parsed_data))
 
         return arrayUtils.flatten(methods)
@@ -401,7 +427,7 @@ class Javap:
 
     def get_all_objects(self):
         objs = []
-        for file_string, parsed_data in self.files.iteritems():
+        for file_string, parsed_data in self.program_files.iteritems():
             objs.append(self.get_objects(parsed_data))
 
         return arrayUtils.flatten(objs)

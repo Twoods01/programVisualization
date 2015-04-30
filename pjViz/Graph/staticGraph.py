@@ -25,7 +25,8 @@ class StaticGraph(graphInterface):
         #All parsed data
         self.parsed = parsed
         #Program flow
-        self.flow = flow #parsed.run_file()
+        self.flow = flow
+        print(self.flow)
         #Current branch of execution
         self.cur_branch = 0
         self.cur_branch_index = 0
@@ -44,10 +45,10 @@ class StaticGraph(graphInterface):
         #Array of MethodDeclarations
         self.methods = parsed.get_all_methods()
         #current node, starts as a fake function which calls main
-        specical_start_node = MethodDeclaration("", body = [MethodInvocation("main")])
+        special_start_node = MethodDeclaration("", body = [MethodInvocation("main")])
 
         #The current method being visualized
-        self.current = Node(specical_start_node)
+        self.current = Node(special_start_node)
         #Array of nodes for methods within current
         self.nodes = []
         self.data = dv.DataView(parsed)
@@ -267,6 +268,7 @@ class StaticGraph(graphInterface):
             self.animation_path.append(self.nodes[-1][-1])
             return
 
+        print("Looking for " + str(next_method_print))
         #If we've gone through any new branches their numbers will be in this array, need to find our way to the branch
         # and add everything in it, unless it's the last branch which is where the method we're trying to find is
         for i, branch in enumerate(new_branches):

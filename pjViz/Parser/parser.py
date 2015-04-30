@@ -2,7 +2,7 @@
 
 import ply.lex as lex
 import ply.yacc as yacc
-from model import *
+from pjViz.Parser.model import *
 
 class MyLexer(object):
 
@@ -467,6 +467,7 @@ class StatementParser(object):
 
     def p_block(self, p):
         '''block : '{' block_statements_opt '}' '''
+
         line_num = p[2][0].line_num
         if is_branch(p[2][0]):
             line_num -= 1
@@ -866,6 +867,7 @@ class StatementParser(object):
     def p_try_statement_with_resources(self, p):
         '''try_statement_with_resources : TRY resource_specification try_block catches_opt
                                         | TRY resource_specification try_block catches_opt finally'''
+
         if len(p) == 5:
             p[0] = Try(p[3], p[3].line_num, p.lexer.lineno - 1, resources=p[2], catches=p[4])
         else:

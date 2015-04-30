@@ -158,13 +158,12 @@ class ConstructorDeclaration(SourceElement):
         self.parameters = parameters
         self.throws = throws
         self.line_num = line_num
-        try:
-            self.end_line_num = self.body[-1].line_num
-        except IndexError:
-            self.end_line_num = line_num
-        except AttributeError:
-            print("Missing line num somewhere")
-            self.end_line_num = self.line_num
+        if self.body:
+            self.end_line_num = self.body[-1].line_num + 1
+            if is_visual_branch(self.body[-1]):
+                self.end_line_num = self.body[-1].end_line_num
+        else:
+            self.end_line_num = None
         self.return_type = name
 
     def accept(self, visitor):
