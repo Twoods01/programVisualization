@@ -26,7 +26,6 @@ class StaticGraph(graphInterface):
         self.parsed = parsed
         #Program flow
         self.flow = flow
-        print(self.flow)
         #Current branch of execution
         self.cur_branch = 0
         self.cur_branch_index = 0
@@ -179,6 +178,9 @@ class StaticGraph(graphInterface):
                 return True
             self.cur_branch_index += 1
 
+        if self.cur_branch_index == len(self.nodes[self.cur_branch]):
+            self.cur_branch_index -= 1
+
         return False
 
     #Callback used by animation dots
@@ -268,7 +270,8 @@ class StaticGraph(graphInterface):
             self.animation_path.append(self.nodes[-1][-1])
             return
 
-        print("Looking for " + str(next_method_print))
+        initial_branch = self.cur_branch
+        initial_index = self.cur_branch_index
         #If we've gone through any new branches their numbers will be in this array, need to find our way to the branch
         # and add everything in it, unless it's the last branch which is where the method we're trying to find is
         for i, branch in enumerate(new_branches):
@@ -320,10 +323,27 @@ class StaticGraph(graphInterface):
             #Follow the last branch out
             self.cur_branch = self.nodes[self.cur_branch][-1].child_branches[-1]
             self.cur_branch_index = 0
-
         if not "Return" in map(lambda x: x.method.name, self.animation_path):
             #Add everything in the final branch, up to the method
             self.handle_non_user_methods_in_current_branch(next_method_print[1])
+            #If we havent moved at all, we have a case where we can't differentiate between identical method calls in different branches
+            # take bottom branch out, and add everything in branch up to method
+            if initial_branch == self.cur_branch and initial_index == self.cur_branch_index:
+                self.cur_branch = self.nodes[self.cur_branch][self.cur_branch_index].child_branches[-1]
+                self.cur_branch_index = 0
+                self.handle_non_user_methods_in_current_branch(next_method_print[1])
+                print(map(lambda x: x.method.name, self.animation_path))
+                while not next_method_print[1] in map(lambda x: x.method.name, self.nodes[self.cur_branch]):
+                    #Follow the last branch out
+                    self.cur_branch = self.nodes[self.cur_branch][-1].child_branches[-1]
+                    self.cur_branch_index = 0
+
+                    #Add everything in current method
+                    if self.handle_non_user_methods_in_current_branch(next_method_print[1]):
+                        break
+
+                    print(map(lambda x: x.method.name, self.animation_path))
+
             #Add the method
             self.animation_path.append(self.nodes[self.cur_branch][self.cur_branch_index])
 

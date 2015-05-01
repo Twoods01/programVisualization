@@ -859,7 +859,8 @@ class MethodInvocation(Expression):
 
     def get_args(self):
         args = []
-        args.append(self.target.get_args())
+        if self.target is not None:
+            args.append(self.target.get_args())
         for arg in self.arguments:
             args.append(arg.get_args())
 
