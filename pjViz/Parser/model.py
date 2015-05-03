@@ -937,8 +937,8 @@ class IfThenElse(Statement):
         elif is_branch(self.if_false):
             additional_branches.extend([-1] + self.if_false.get_branch_numbers())
             #If this is an if/else inside the body of another if/else then it needs an additional invisible node
-            # if in_body:
-            #     additional_branches.append(-1)
+            if in_body:
+                additional_branches.append(-1)
         else:
             additional_branches.append(self.if_false_line_num)
 
@@ -951,6 +951,8 @@ class IfThenElse(Statement):
         if type(self.if_false) is Block:
             if type(self.if_false[-1]) is IfThenElse:
                     if self.if_false[-1].if_false is None:
+                        if in_body:
+                            del additional_branches[-1]
                         del additional_branches[-1]
 
 
@@ -988,8 +990,6 @@ class IfThenElse(Statement):
                     method_in_pred = au.flatten(statement.get_predicate().get_method_invocations())
                     if len(method_in_pred) != 0:
                         block.extend(method_in_pred)
-                    #Why is this check here?
-                    #elif len(block) == 0:
                     else:
                         block.append(MethodInvocation("InvisibleNode"))
 
@@ -1055,7 +1055,6 @@ class IfThenElse(Statement):
             if len(array) > 0:
                 array.append([MethodInvocation("InvisibleNode")])
         else:
-            #add_to_array_preserve_nesting(array, self.if_false.get_method_invocations())
             invs = self.if_false.get_method_invocations()
             if len(invs) > 0:
                 array.append(invs)
@@ -1289,7 +1288,7 @@ class For(Statement):
 
 class ForEach(Statement):
 
-    def __init__(self, type, variable, iterable, body, modifiers=None):
+    def __init__(self, type, variable, iterable, body, line_num, end_line_num, modifiers=None):
         super(ForEach, self).__init__()
         self._fields = ['type', 'variable', 'iterable', 'body', 'modifiers']
         if modifiers is None:
@@ -1299,11 +1298,17 @@ class ForEach(Statement):
         self.iterable = iterable
         self.body = body
         self.modifiers = modifiers
+        self.line_num = line_num
+        self.end_line_num = end_line_num
         self.branch_line_nums = self.get_branch_numbers()
 
     def accept(self, visitor):
         if visitor.visit_ForEach(self):
             self.body.accept(visitor)
+
+    def get_predicate(self):
+        #Cheap work around, will end up returning []
+        return FieldAccess("One", "Two")
 
     def get_branch_numbers(self, in_body = False):
         branches = [-1, -1, self.line_num]

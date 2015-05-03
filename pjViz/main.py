@@ -71,6 +71,7 @@ def main(argv):
             flow_file = open(parsed.main.name.split("/")[-1] + ".flow", "w")
             for line in flow:
                 flow_file.write(line + "\n")
+            flow_file.close()
         graph = visualization(parsed, window, cam, flow)
 
     #parsed.cleanup()

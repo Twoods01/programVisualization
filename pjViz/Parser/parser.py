@@ -692,11 +692,11 @@ class StatementParser(object):
 
     def p_enhanced_for_statement(self, p):
         '''enhanced_for_statement : enhanced_for_statement_header statement'''
-        p[0] = ForEach(p[1]['type'], p[1]['variable'], p[1]['iterable'], p[2], modifiers=p[1]['modifiers'])
+        p[0] = ForEach(p[1]['type'], p[1]['variable'], p[1]['iterable'], p[2], p[2].line_num, p.lexer.lineno - 1, modifiers=p[1]['modifiers'])
 
     def p_enhanced_for_statement_no_short_if(self, p):
         '''enhanced_for_statement_no_short_if : enhanced_for_statement_header statement_no_short_if'''
-        p[0] = ForEach(p[1]['type'], p[1]['variable'], p[1]['iterable'], p[2], modifiers=p[1]['modifiers'])
+        p[0] = ForEach(p[1]['type'], p[1]['variable'], p[1]['iterable'], p[2], p[2].line_num, p.lexer.lineno - 1, modifiers=p[1]['modifiers'])
 
     def p_enhanced_for_statement_header(self, p):
         '''enhanced_for_statement_header : enhanced_for_statement_header_init ':' expression ')' '''

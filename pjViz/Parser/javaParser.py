@@ -150,9 +150,9 @@ class Javap:
 
                         elif previous_was_branch:
                             previous_was_branch = False
-                            inserted_lines, branch_num, return_index = \
-                                self.add_branch_print(file_data, statement.line_num, inserted_lines, branch_num,
-                                                      returns, return_index, return_type, method.name, class_name)
+                            # inserted_lines, branch_num, return_index = \
+                            #     self.add_branch_print(file_data, statement.line_num, inserted_lines, branch_num,
+                            #                           returns, return_index, return_type, method.name, class_name)
 
                     #Make sure we've printed every return
                     while return_index < len(returns):

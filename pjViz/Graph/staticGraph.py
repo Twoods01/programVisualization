@@ -326,11 +326,18 @@ class StaticGraph(graphInterface):
         if not "Return" in map(lambda x: x.method.name, self.animation_path):
             #Add everything in the final branch, up to the method
             self.handle_non_user_methods_in_current_branch(next_method_print[1])
+
             #If we havent moved at all, we have a case where we can't differentiate between identical method calls in different branches
             # take bottom branch out, and add everything in branch up to method
             if initial_branch == self.cur_branch and initial_index == self.cur_branch_index:
-                self.cur_branch = self.nodes[self.cur_branch][self.cur_branch_index].child_branches[-1]
-                self.cur_branch_index = 0
+                print("Special Case!")
+                new_branch = self.nodes[self.cur_branch][self.cur_branch_index].child_branches[-1]
+                if new_branch != self.cur_branch:
+                    self.cur_branch_index = 0
+                else:
+                    self.cur_branch_index += 1
+
+                self.cur_branch = new_branch
                 self.handle_non_user_methods_in_current_branch(next_method_print[1])
                 print(map(lambda x: x.method.name, self.animation_path))
                 while not next_method_print[1] in map(lambda x: x.method.name, self.nodes[self.cur_branch]):
@@ -563,6 +570,7 @@ class StaticGraph(graphInterface):
         self.cam.set_pos(self.active_node.x, self.active_node.y)
 
         self.dot.place(self.active_node.x, self.active_node.y)
+        self.print_branched_nodes()
 
     #Mouse click
     def handle_input(self, x, y):
