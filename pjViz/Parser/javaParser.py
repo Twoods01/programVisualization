@@ -128,6 +128,13 @@ class Javap:
 
                     #We need to insert all lines, branches and returns, in order, in one pass
                     for statement in method.body:
+                        #If the prior statement was a branch we need to add an additional branch printout
+                        if previous_was_branch:
+                            previous_was_branch = False
+                            inserted_lines, branch_num, return_index = \
+                                self.add_branch_print(file_data, statement.line_num - 1, inserted_lines, branch_num,
+                                                      returns, return_index, return_type, method.name, class_name)
+
                         #If the statement is a branch it has branch_line_nums, an array of line numbers marking
                         # the start of each branch it produces
                         if m.is_visual_branch(statement):
@@ -147,12 +154,8 @@ class Javap:
                                 if return_index < len(returns) - 1 and returns[return_index].line_num == line:
                                     inserted_lines = self.add_return_print(file_data, returns[return_index], inserted_lines, return_type, method.name, class_name)
                                     return_index += 1
-
-                        elif previous_was_branch:
+                        else:
                             previous_was_branch = False
-                            # inserted_lines, branch_num, return_index = \
-                            #     self.add_branch_print(file_data, statement.line_num, inserted_lines, branch_num,
-                            #                           returns, return_index, return_type, method.name, class_name)
 
                     #Make sure we've printed every return
                     while return_index < len(returns):
@@ -164,6 +167,7 @@ class Javap:
                     if ((builtin.type(method) is m.ConstructorDeclaration) or (builtin.type(method) is m.MethodDeclaration))\
                             and builtin.type(method.body[-1]) is not m.Return:
                         if m.is_visual_branch(method.body[-1]):
+                            print("Inserting final branch in " + method.name)
                             inserted_lines, branch_num, return_index = \
                                 self.add_branch_print(file_data, method.end_line_num - 1, inserted_lines, branch_num,
                                                       returns, return_index, return_type, method.name, class_name)
