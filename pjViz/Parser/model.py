@@ -18,30 +18,37 @@ break_found = False
 def build_branch_nums(nested_array, built_array, branches_done=False):
     global break_found
     if len(nested_array) == 0:
+        print(built_array)
         return built_array
 
     #New branch
     if hasattr(nested_array[0], '__iter__'):
         print_placed = False
+        print("Looping through " + str(nested_array[0]))
         #For every path in this branch
         for branch in nested_array[0]:
-            if not print_placed:
-                if type(branch[0]) is MethodInvocation and branch[0].name == "InvisibleNode":
-                    built_array.append(-1)
-                else:
-                    built_array.append(branch[0].line_num)
-                    print_placed = True
-            else:
-                built_array.append(-1)
-            #Recurse on the path, store the returned final_node and add it to our new parent set
+            built_array.append(branch[0].line_num)
+            print("Checking " + str(branch))
+            # if not print_placed:
+            #     if type(branch[0]) is MethodInvocation and branch[0].name == "InvisibleNode":
+            #         built_array.append(-1)
+            #     else:
+            #         built_array.append(branch[0].line_num)
+            #         print_placed = True
+            # else:
+            #     built_array.append(-1)
+
+            print(built_array)
+            #Recurse on the path
             built_array = build_branch_nums(branch, built_array)
 
         #Recurse on the remaining array
-        return build_branch_nums(nested_array[1:], built_array, branches_done = True)
+        return build_branch_nums(nested_array[1:], built_array, branches_done=True)
     #Single Node
     else:
         #First method after the end of a branch should have it's line number recorded
         if branches_done:
+            print(nested_array[0])
             built_array.append(nested_array[0].line_num)
 
         #If we have previously found a break, check if this is a loopEnd, in which case we need to record it
@@ -1010,7 +1017,7 @@ class IfThenElse(Statement):
             if len(block) > 0:
                 array.append(block)
             else:
-                array.append([MethodInvocation("InvisibleNode")])
+                array.append([MethodInvocation("InvisibleNode", line_num=self.if_true[0].line_num)])
 
         else:
             if type(self.if_true) is Return:
@@ -1020,11 +1027,15 @@ class IfThenElse(Statement):
                 if len(invs) > 0:
                     array.append(invs)
                 else:
-                    array.append([MethodInvocation("InvisibleNode")])
+                    array.append([MethodInvocation("InvisibleNode", line_num=self.if_true.line_num)])
 
         block = []
         if type(self.if_false) is IfThenElse or is_loop(self.if_false):
             method_in_pred = au.flatten(self.if_false.get_predicate().get_method_invocations())
+            #These methods are in a place which can't be printed to, replace their line_nums
+            for method in method_in_pred:
+                method.line_num = -1
+
             if len(method_in_pred) != 0:
                 block.extend(method_in_pred)
             else:
@@ -1033,7 +1044,7 @@ class IfThenElse(Statement):
             if len(block) > 0:
                 array.append(block)
             else:
-                array.append([MethodInvocation("InvisibleNode")])
+                array.append([MethodInvocation("InvisibleNode", line_num=self.if_false_line_num)])
 
             au.add_to_array_preserve_nesting(block, self.if_false.get_method_invocations())
 
@@ -1044,7 +1055,7 @@ class IfThenElse(Statement):
                     if len(method_in_pred) != 0:
                         block.extend(method_in_pred)
                     elif len(block) == 0:
-                        block.append(MethodInvocation("InvisibleNode"))
+                        block.append(MethodInvocation("InvisibleNode", line_num=statement.line_num - 1))
                     au.add_to_array_preserve_nesting(block, statement.get_method_invocations())
 
                 elif type(statement) is Return:
@@ -1056,7 +1067,7 @@ class IfThenElse(Statement):
             if len(block) > 0:
                 array.append(block)
             else:
-                array.append([MethodInvocation("InvisibleNode")])
+                array.append([MethodInvocation("InvisibleNode", line_num=self.if_false[0].line_num)])
 
         elif self.if_false is None:
             if len(array) > 0:
@@ -1066,7 +1077,7 @@ class IfThenElse(Statement):
             if len(invs) > 0:
                 array.append(invs)
             else:
-                array.append([MethodInvocation("InvisibleNode")])
+                array.append([MethodInvocation("InvisibleNode", line_num=self.if_false.line_num)])
 
         return array
 
@@ -1182,6 +1193,7 @@ class For(Statement):
         self.body = body
         self.line_num = line_num
         self.end_line_num = end_line_num
+        print("For ends @ " + str(end_line_num))
         self.branch_line_nums = self.get_branch_numbers()
 
     def accept(self, visitor):
@@ -1455,7 +1467,7 @@ class Break(Statement):
         return None
 
     def get_method_invocations(self):
-        return [MethodInvocation("Break")]
+        return [MethodInvocation("Break", line_num=self.line_num)]
 
 
 class Return(Statement):
