@@ -18,27 +18,14 @@ break_found = False
 def build_branch_nums(nested_array, built_array, branches_done=False):
     global break_found
     if len(nested_array) == 0:
-        print(built_array)
         return built_array
 
     #New branch
     if hasattr(nested_array[0], '__iter__'):
-        print_placed = False
-        print("Looping through " + str(nested_array[0]))
         #For every path in this branch
         for branch in nested_array[0]:
             built_array.append(branch[0].line_num)
-            print("Checking " + str(branch))
-            # if not print_placed:
-            #     if type(branch[0]) is MethodInvocation and branch[0].name == "InvisibleNode":
-            #         built_array.append(-1)
-            #     else:
-            #         built_array.append(branch[0].line_num)
-            #         print_placed = True
-            # else:
-            #     built_array.append(-1)
 
-            print(built_array)
             #Recurse on the path
             built_array = build_branch_nums(branch, built_array)
 
@@ -48,7 +35,6 @@ def build_branch_nums(nested_array, built_array, branches_done=False):
     else:
         #First method after the end of a branch should have it's line number recorded
         if branches_done:
-            print(nested_array[0])
             built_array.append(nested_array[0].line_num)
 
         #If we have previously found a break, check if this is a loopEnd, in which case we need to record it
@@ -1193,7 +1179,6 @@ class For(Statement):
         self.body = body
         self.line_num = line_num
         self.end_line_num = end_line_num
-        print("For ends @ " + str(end_line_num))
         self.branch_line_nums = self.get_branch_numbers()
 
     def accept(self, visitor):
