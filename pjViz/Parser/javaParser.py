@@ -247,6 +247,8 @@ class Javap:
     def add_return_print(self, file_data, ret, inserted_lines, return_type, method_name, class_name):
         #If this return is actually a return and not void
         if builtin.type(ret) is m.Return and return_type != "void":
+            if file_data[ret.line_num + inserted_lines].find("}") != -1:
+                ret.line_num -= 1
             return_value = file_data[ret.line_num + inserted_lines].replace("return","",1).lstrip()
             file_data[ret.line_num + inserted_lines] = return_type + " __TEMP_VAR__ = " + return_value
             file_data.insert(ret.line_num + inserted_lines + 1,
