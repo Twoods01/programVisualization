@@ -40,6 +40,7 @@ def build_branch_nums(nested_array, built_array, branches_done=False):
         #If we have previously found a break, check if this is a loopEnd, in which case we need to record it
         # and update break_found
         if break_found and type(nested_array[0]) is MethodInvocation and nested_array[0].name == "loopEnd":
+            print("Special Case!")
             built_array.append(nested_array[0].line_num)
             break_found = False
 
@@ -943,6 +944,11 @@ class IfThenElse(Statement):
 
         self.end_line_num = end_line_num
         self.branch_line_nums = self.get_branch_numbers()
+        #If there is no false branch add an extra invisible node, this only comes up for ifs that arent
+        # enclosed in any other structures
+        # if self.if_false is None:
+        #     self.branch_line_nums.append(-1)
+        print(self.branch_line_nums)
 
     def accept(self, visitor):
         if visitor.visit_IfThenElse(self):
@@ -954,8 +960,8 @@ class IfThenElse(Statement):
 
     def get_branch_numbers(self):
         branches = build_branch_nums([self.get_method_invocations()], [])
-        if branches[-1] == -1:
-            del branches[-1]
+        # if branches[-1] == -1:
+        #     del branches[-1]
         return branches
 
     def get_data(self):
@@ -1104,14 +1110,16 @@ class While(Statement):
         self.line_num = line_num
         self.end_line_num = end_line_num
         self.branch_line_nums = self.get_branch_numbers()
+        if type(self.body) is Block:
+            if type(self.body[-1]) is IfThenElse:
+                self.branch_line_nums.append(-1)
+        print(self.branch_line_nums)
 
     def accept(self, visitor):
         visitor.visit_While(self)
 
     def get_branch_numbers(self):
         branches = build_branch_nums([self.get_method_invocations()], [])
-        if branches[-1] == -1:
-            del branches[-1]
         return branches
 
     def get_predicate(self):
@@ -1187,8 +1195,6 @@ class For(Statement):
 
     def get_branch_numbers(self):
         branches = build_branch_nums([self.get_method_invocations()], [])
-        if branches[-1] == -1:
-            del branches[-1]
         return branches
 
     def get_predicate(self):
@@ -1292,8 +1298,6 @@ class ForEach(Statement):
 
     def get_branch_numbers(self):
         branches = build_branch_nums([self.get_method_invocations()], [])
-        if branches[-1] == -1:
-            del branches[-1]
         return branches
 
     def get_returns(self):
