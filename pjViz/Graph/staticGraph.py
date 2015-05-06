@@ -435,9 +435,10 @@ class StaticGraph(graphInterface):
                     if break_flag or parent.method.name != "Break":
                         node.add_parent(parent)
 
+                        if parent.method.name == "InvisibleNode" and parent.branch == branch_num:
+                            branch_num += 1
+
                         parent.add_branch(branch_num)
-
-
 
             #Add the node to the node list
             try:
@@ -566,7 +567,6 @@ class StaticGraph(graphInterface):
         self.cam.set_pos(self.active_node.x, self.active_node.y)
 
         self.dot.place(self.active_node.x, self.active_node.y)
-        self.print_branched_nodes()
 
     #Mouse click
     def handle_input(self, x, y):
