@@ -167,7 +167,6 @@ class Javap:
                     if ((builtin.type(method) is m.ConstructorDeclaration) or (builtin.type(method) is m.MethodDeclaration))\
                             and builtin.type(method.body[-1]) is not m.Return:
                         if m.is_visual_branch(method.body[-1]):
-                            print("Inserting final branch in " + method.name)
                             inserted_lines, branch_num, return_index = \
                                 self.add_branch_print(file_data, method.end_line_num - 1, inserted_lines, branch_num,
                                                       returns, return_index, return_type, method.name, class_name)

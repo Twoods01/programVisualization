@@ -26,39 +26,20 @@ class test {
     }
 
     public static void branchTesting(){
-        int strLength = 1;
-        if (false)
-            return ;
-        else{
 
-            if (Three() > 1 && One())
+        if (One())
+        {
+            Two();
+            if (true)
+                Three();
+
+            else if (Four())
             {
-                Four();
-                if (true)
-                    One();
-
-                //problem area
-                else if (Two())
-                {
-
-                    Five();
-                    if (true)
-                        return ;
-
-
-                }
-
+                Five();
             }
-            if (One() && Two())
-            {
-                Six();
-                if (true){
-                    return;
-                }
-            }
-
 
         }
+
     }
 
     //public static void Start(){return;}
@@ -74,8 +55,8 @@ class test {
     public static int Three(){
         return 1;
     }
-    public static void Four(){
-        return;
+    public static int Four(){
+        return 1;
     }
     public static void Five(){
         return;

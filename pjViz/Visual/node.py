@@ -2,7 +2,9 @@ __author__ = 'twoods0129'
 
 import operator as op
 import pyglet
+from pjViz.constants import Constants
 import pjViz.Utils.vectorMath as vm
+import pjViz.Utils.spline as spline
 
 init_radius = 150
 node_height = 70
@@ -13,6 +15,8 @@ y_offset = node_height / 2
 node_vertices = {}
 
 class Node:
+    texture = pyglet.image.load('Visual/rr.png').get_texture()
+
     #Construct a new Node given a MethodDeclaration which it represents, and a parent if it has one
     def __init__(self, method, parent=None, visible=True):
         #Array of child nodes
@@ -24,6 +28,9 @@ class Node:
         #Hash of number of times this node has been visited by other nodes
         # key is the node, value is the number of visits
         self.visit_count = {}
+        #Hash of splines which form the path from this node to its parents
+        #key is the parent node, value is the Spline
+        self.splines = {}
         #x,y location on screen
         self.x = -1
         self.y = -1
@@ -52,7 +59,7 @@ class Node:
         self.y = y
 
     #Draw the node with the given color
-    def draw(self, color, additional_draw_task=None):
+    def draw(self, color, additional_draw_task=None, texture=True):
         if not self.visible:
             if additional_draw_task != None:
                 additional_draw_task()
@@ -69,9 +76,17 @@ class Node:
                                             57, -35, 0,
                                             57, 35, 0,
                                             -57, 35, 0)),
-                                    ('c3B', (color[0], color[1], color[2]) * 4))
-        node_vertices[color].draw(pyglet.gl.GL_TRIANGLES)
+                                    ('t2f', (0.0, 0.0,
+                                             1.0, 0.0,
+                                             1.0, 1.0,
+                                             0.0, 1.0)),
+                                    ('c4B', (color[0], color[1], color[2], 255) * 4))
 
+        if texture:
+            pyglet.gl.glEnable(Node.texture.target)
+            pyglet.gl.glBindTexture(Node.texture.target, Node.texture.id)
+
+        node_vertices[color].draw(pyglet.gl.GL_TRIANGLES)
         if additional_draw_task != None:
             pyglet.gl.glPopMatrix()
             additional_draw_task()
@@ -80,13 +95,15 @@ class Node:
 
         #Label it with method name
         pyglet.text.Label(self.method.name + "()",
-                          font_name='Times New Roman',
+                          font_name= Constants.font,
                           font_size=12,
                           x = 0,
                           y = 0,
                           anchor_y = 'center',
                           anchor_x= 'center').draw()
 
+        if texture:
+            pyglet.gl.glDisable(Node.texture.target)
         pyglet.gl.glPopMatrix()
 
     def add_branch(self, branch_num):
@@ -105,7 +122,7 @@ class Node:
         return x > self.x - x_offset  and x < self.x + node_width - x_offset\
                and y > self.y - y_offset and y < self.y + node_height - y_offset
 
-    #Connect current node to |node|
+    #Connect current node to |node| UNUSED
     def connect(self, color=[237, 255, 228]):
         pyglet.gl.glLineWidth(3)
         for p in self.parents:
@@ -115,9 +132,13 @@ class Node:
                                 ('c3B', (color[0], color[1], color[2]) * 2))
 
 
-    def draw_edge(self, node, color=[255, 255, 255]):
+    #Draw an edge from self to node, using a spline
+    def draw_edge(self, node, color=[255, 255, 255], up=False, control=None):
         pyglet.gl.glLineWidth(3)
-        pyglet.graphics.draw(2, pyglet.gl.GL_LINES,
-                                ('v2i', (self.x, self.y,
-                                         node.x, node.y)),
-                                ('c3B', (color[0], color[1], color[2]) * 2))
+        if not node in self.splines:
+            self.splines[node] = spline.Spline(self, node, up=up, control=control)
+
+        if not self in node.splines:
+            node.splines[self] = self.splines[node]
+
+        self.splines[node].draw(color)

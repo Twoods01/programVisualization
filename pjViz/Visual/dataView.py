@@ -1,5 +1,6 @@
 __author__ = 'twoods0129'
 from pjViz.Parser.model import FieldDeclaration
+from pjViz.constants import Constants
 import pyglet
 
 class DataView():
@@ -115,7 +116,7 @@ class DataView():
             pyglet.gl.glTranslatef(self.x, self.y, 0)
             #Label it with name and type
             pyglet.text.Label(str(self.var),
-                              font_name='Times New Roman',
+                              font_name=Constants.font,
                               font_size=12,
                               x = 0,
                               y = 0,

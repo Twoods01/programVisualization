@@ -36,10 +36,12 @@ class Stack():
 
 class Frame():
 
-    def __init__(self, node, branch, index):
+    def __init__(self, node, branch, index, cam):
         self.node = node
         self.branch = branch
         self.index = index
+        self.cam_x = cam.x
+        self.cam_y = cam.y
 
     def __str__(self):
         return self.node.method.name + " " + str(self.branch) + ":" + str(self.index)
