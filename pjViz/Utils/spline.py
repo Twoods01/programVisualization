@@ -1,11 +1,12 @@
 __author__ = 'twoods'
 import pjViz.Utils.vectorMath as vm
 import pyglet.gl
+import pjViz.Visual.node
 from numpy import matrix
 
 class Spline():
     control_point_const = 0.21763
-    line_segs = 15
+    line_segs = 10
 
     def __init__(self, start_node, stop_node, up=False, control=None):
         #Ensure that stop comes after start
@@ -35,10 +36,14 @@ class Spline():
     def draw(self, color=[255, 255, 255]):
         pyglet.gl.glBegin(pyglet.gl.GL_LINE_STRIP)
         pyglet.gl.glColor3f(pyglet.gl.GLfloat(color[0] / 255.0), pyglet.gl.GLfloat(color[1] / 255.0), pyglet.gl.GLfloat(color[2] / 255.0))
-        step = (self.end_point[0] - self.start_point[0]) / Spline.line_segs
-        for i in range(self.start_point[0], self.end_point[0], step):
+        dist = vm.dist(self.end_point, self.start_point)
+        segments = Spline.line_segs * (dist / float(pjViz.Visual.node.node_width))
+        step = dist / segments
+        # print("With a dist " + str(dist) + " there are " + str(segments) + " segments")
+        i = self.start_point[0]
+        while i <= self.end_point[0]:
             pyglet.gl.glVertex2f(i, self.y(i))
-
+            i += step
         pyglet.gl.glEnd()
 
     def y(self, x):

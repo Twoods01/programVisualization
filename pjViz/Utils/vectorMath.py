@@ -25,6 +25,9 @@ def add_vectors(vector1, vector2):
 def get_direction(v1, v2):
         return map(op.sub, v1, v2)
 
+def dist(v1, v2):
+    return magnitude(get_direction(v1, v2))
+
 def perpendicular(v1, v2, weight=1.0):
     dir = get_direction(v1, v2)
     return (-dir[1] * weight, dir[0] * weight)
