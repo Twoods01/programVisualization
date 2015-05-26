@@ -47,11 +47,7 @@ def main(argv):
     directory = args[0]
     p_args = " ".join(args[1:])
 
-    #config = pyglet.gl.Config(alpha_size=8)
     window = pyglet.window.Window(1200, 700)
-    pyglet.gl.glEnable(pyglet.gl.GL_BLEND)
-    pyglet.gl.glBlendFunc(pyglet.gl.GL_SRC_ALPHA, pyglet.gl.GL_ONE_MINUS_SRC_ALPHA)
-
     cam = Utils.camera.Camera(window.width, window.height)
 
     parsed = Javap(directory, p_args)
@@ -161,7 +157,7 @@ def main(argv):
         graph.draw_UI()
         # if visualization.isDynamic:
         #     draw_UI(window)
-        #fps_display.draw()
+        fps_display.draw()
 
     pyglet.clock.schedule_interval(update, speed)
     pyglet.clock.set_fps_limit(frame_rate)

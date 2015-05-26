@@ -1,8 +1,6 @@
 __author__ = 'twoods'
 import main as m
-import sys, os
-
+import sys
 
 def main():
-    sys.path.insert(0, os.getcwd())
     m.main(sys.argv[1:])

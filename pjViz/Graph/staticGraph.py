@@ -59,7 +59,7 @@ class StaticGraph(graphInterface):
         self.window = window
         self.place_nodes(window)
         #Put the dot on start and add main and return to path
-        self.dot.place(self.nodes[0][0])
+        self.dot.place(self.nodes[0][0].x, self.nodes[0][0].y)
         self.animation_path.append(self.nodes[0][1])
         self.animation_path.append(self.nodes[0][2])
 
@@ -73,36 +73,13 @@ class StaticGraph(graphInterface):
 
         #Connect(draw edges) all nodes
         for branch in self.nodes:
-            control = None
             for node in branch:
-                #If the node is invisible mark its location and move on
-                if not node.visible:
-                    control = (node.x, node.y)
-                #Visible node go through all parents and draw connections
-                else:
-                    for p in node.parents:
-                        #If the parent is not visible mark its location and move it its parent
-                        if not p.visible:
-                            control = (p.x, p.y)
-                            while not p.visible:
-                                p = p.parents[0]
-
-                        #Determine if the curve should arch up or down
-                        if len(p.child_branches) > 1:
-                            up = self.nodes[p.child_branches[0]][0] == node
-                        else:
-                            up = p.y > (self.window.height / 2)
-
-                        #Draw the curve the proper color
-                        if (node in self.animation_path or node == self.active_node)\
-                                and (p in self.animation_path or p == self.active_node):
-                            node.draw_edge(p, path_highlight, up, control)
-                        else:
-                            node.draw_edge(p, up=up, control=control)
-
-                        #Used control, reset it
-                        if control:
-                            control = None
+                for p in node.parents:
+                    if (node in self.animation_path or node == self.active_node)\
+                            and (p in self.animation_path or p == self.active_node):
+                        node.draw_edge(p, path_highlight)
+                    else:
+                        node.draw_edge(p)
 
         #Draw all nodes
         for branch in self.nodes:
@@ -257,11 +234,6 @@ class StaticGraph(graphInterface):
                 return
 
         #Give animation_dot it's next target
-        i = 0
-        while not self.animation_path[i].visible:
-            i += 1
-        del self.animation_path[:i]
-
         self.dot.set_destination(self.animation_path[0])
 
     #Find the next method push from |flow|, this can lead to multiple animation_forwards
@@ -351,7 +323,6 @@ class StaticGraph(graphInterface):
             #Follow the last branch out
             self.cur_branch = self.nodes[self.cur_branch][-1].child_branches[-1]
             self.cur_branch_index = 0
-
         if not "Return" in map(lambda x: x.method.name, self.animation_path):
             #Add everything in the final branch, up to the method
             self.handle_non_user_methods_in_current_branch(next_method_print[1])
@@ -574,17 +545,15 @@ class StaticGraph(graphInterface):
         self.current = node
 
         if entering:
-            self.stack.append(Frame(node, self.active_node.branch, self.active_node.index, self.cam))
+            self.stack.append(Frame(node, self.active_node.branch, self.active_node.index))
             if self.prev_index != 0:
                 self.cur_index = self.prev_index
                 self.prev_index = 0
             self.cur_branch = self.cur_branch_index = 0
-
         else:
             frame = self.stack.pop_to(node)
             self.cur_branch = frame.branch
             self.cur_branch_index = frame.index
-
 
             #If we're not in an animation, search through flow to find the first occurence of this method
             if not in_animation:
@@ -595,13 +564,9 @@ class StaticGraph(graphInterface):
 
         self.place_nodes(in_animation)
         self.animation_path = []
+        self.cam.set_pos(self.active_node.x, self.active_node.y)
 
-        if entering:
-            self.cam.set_pos(self.active_node.x, self.active_node.y)
-        else:
-            self.cam.set_pos(frame.cam_x + (self.window.width / 2), frame.cam_y + (self.window.height / 2))
-
-        self.dot.place(self.active_node)
+        self.dot.place(self.active_node.x, self.active_node.y)
 
     #Mouse click
     def handle_input(self, x, y):

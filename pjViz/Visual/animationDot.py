@@ -3,7 +3,6 @@ import pyglet, node
 import datetime
 
 class AnimationDot:
-    texture = pyglet.image.load('Visual/rr.png').get_texture()
     move_duration = 1.0
     scale_duration = 0.5
     min_width = 25
@@ -15,8 +14,8 @@ class AnimationDot:
     max_height = node.node_height
     height_inc = (max_height - min_height) / scale_duration
 
-    step_over_color = (64, 74, 110, 255)
-    step_in_color = (136, 140, 62, 255)
+    step_over_color = (64, 74, 110)
+    step_in_color = (136, 140, 62)
 
     def __init__(self, new_target_callback, update_active_node_callback):
         #X/y position
@@ -25,16 +24,13 @@ class AnimationDot:
 
         #The amount to increment in x and y each step
         self.x_inc = 0
+        self.y_inc = 0
 
         #If a target is currently set and if we've reached that target
         self.has_target = False
         self.reached_target = False
-        #The node we start on
-        self.start = None
         #The target node we are going for
         self.target = None
-        #The spline curve we are following
-        self.path = None
 
         self.step_into = True
         #Methods to call when we need a new target, and when we need to update the currently active node
@@ -52,18 +48,17 @@ class AnimationDot:
         self.wait_duration = 0
 
 
-    def place(self, node):
-        self.start = node
-        self.x = node.x
-        self.y = node.y
+    def place(self, x, y):
+        self.x = x
+        self.y = y
 
     def wait(self):
         self.wait_duration = AnimationDot.wait_duration
 
     def set_destination(self, node):
-        self.path = node.splines[self.start]
         self.target = node
         self.x_inc = (node.x - self.x) / AnimationDot.move_duration
+        self.y_inc = (node.y - self.y) / AnimationDot.move_duration
 
         self.reached_target = False
         self.updated_active_node = False
@@ -76,7 +71,7 @@ class AnimationDot:
 
     def move_to_target(self, delta_t):
         self.x += self.x_inc * delta_t
-        self.y = self.path.y(self.x)
+        self.y += self.y_inc * delta_t
 
         if self.movement_duration >= AnimationDot.move_duration / 2 and not self.updated_active_node:
             self.updated_active_node = True
@@ -122,7 +117,6 @@ class AnimationDot:
                     self.width = AnimationDot.max_width
                     self.height = AnimationDot.max_height
                 self.has_target = False
-                self.start = self.target
                 self.new_target_callback()
 
 
@@ -140,14 +134,7 @@ class AnimationDot:
                                             self.width / 2, -self.height / 2, 0,
                                             self.width / 2, self.height / 2, 0,
                                             -self.width / 2, self.height / 2, 0)),
-                                    ('t2f', (0.0, 0.0,
-                                             1.0, 0.0,
-                                             1.0, 1.0,
-                                             0.0, 1.0)),
-                                    ('c4B', color * 4))
-
-        pyglet.gl.glEnable(AnimationDot.texture.target)
-        pyglet.gl.glBindTexture(AnimationDot.texture.target, AnimationDot.texture.id)
+                                    ('c3B', color * 4))
 
         node_vertices.draw(pyglet.gl.GL_TRIANGLES)
 
