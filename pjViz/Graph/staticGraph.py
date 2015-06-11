@@ -7,6 +7,8 @@ from pjViz.Parser.model import MethodDeclaration, MethodInvocation
 from pjViz.Visual.stack import *
 import pjViz.Visual.dataView as dv
 import pjViz.Utils.arrayUtils, pjViz.Visual.animationDot
+import pjViz.constants as const
+import math
 
 
 standard_color = (204, 127, 93)
@@ -19,6 +21,7 @@ vertical_buffer = 30
 class StaticGraph(graphInterface):
     isDynamic = False
     frames_per_node = 10
+
 
     def __init__(self, parsed, window, cam, flow):
         self.stack = Stack(window)
@@ -52,6 +55,11 @@ class StaticGraph(graphInterface):
         self.nodes = []
         self.data = dv.DataView(parsed)
 
+        #Fields needed for circular layout, radius and step calculated in calc_circle
+        self.angle = 0.0
+        self.radius = 0
+        self.circle_step = 0
+
         #Invisible node which we can place underneath data to connect them to other methods
         self.invis_node = None
 
@@ -59,7 +67,7 @@ class StaticGraph(graphInterface):
         self.window = window
         self.place_nodes(window)
         #Put the dot on start and add main and return to path
-        self.dot.place(self.nodes[0][0].x, self.nodes[0][0].y)
+        self.dot.place(self.nodes[0][0])
         self.animation_path.append(self.nodes[0][1])
         self.animation_path.append(self.nodes[0][2])
 
@@ -73,13 +81,41 @@ class StaticGraph(graphInterface):
 
         #Connect(draw edges) all nodes
         for branch in self.nodes:
+            control = None
             for node in branch:
-                for p in node.parents:
-                    if (node in self.animation_path or node == self.active_node)\
-                            and (p in self.animation_path or p == self.active_node):
-                        node.draw_edge(p, path_highlight)
-                    else:
-                        node.draw_edge(p)
+                #If the node is invisible mark its location and move on
+                if not node.visible and len(node.children) == 1:
+                    control = (node.x, node.y)
+                #Visible node go through all parents and draw connections
+                else:
+                    for p in node.parents:
+                        compare_node = p
+                        #If the parent is not visible mark its location and move it its parent
+                        if not p.visible:
+                            if len(p.children) == 1:
+                                control = (p.x, p.y)
+                                while not p.visible:
+                                    p = p.parents[0]
+
+                        #Determine if the curve should arch up or down
+                        if len(compare_node.child_branches) > 1:
+                            up = compare_node.children[0] == node
+                        else:
+                            up = compare_node.y > (self.window.height / 2)
+
+                        if node.method.name == "repeat":
+                            up = False
+
+                        #Draw the curve the proper color
+                        if (node in self.animation_path or node == self.active_node)\
+                                and (p in self.animation_path or p == self.active_node):
+                            node.draw_edge(p, path_highlight, up, control)
+                        else:
+                            node.draw_edge(p, up=up, control=control)
+
+                        #Used control, reset it
+                        if control:
+                            control = None
 
         #Draw all nodes
         for branch in self.nodes:
@@ -112,12 +148,27 @@ class StaticGraph(graphInterface):
         self.data.draw()
         self.dot.draw_ui()
 
+    #Calculates radius and circle_step for circular node layout
+    def calc_circle(self, branch_array):
+        size_per_node = node_width + node_height + horizontal_buffer + vertical_buffer
+        node_count = len(pjViz.Utils.arrayUtils.flatten(branch_array))
+        circumference = size_per_node * node_count
+        self.radius = circumference / (2 * const.Constants.pi)
+        const.Constants.circle_radius = self.radius
+        print("Circle radius is " + str(self.radius))
+        self.circle_step = (2 * const.Constants.pi) / node_count
+
     #Determines x/y coordinates to place nodes at and seeks cur_index to the proper location
     def place_nodes(self, in_animation=False):
         self.nodes = []
         x = 75
         y = self.window.height / 2
-        self.chain_nodes(self.parsed.get_method_invocations_in_method(self.current.method), None, x, y, 0)
+        branch_array = self.parsed.get_method_invocations_in_method(self.current.method)
+
+        if const.Constants.circular_layout:
+            self.calc_circle(branch_array)
+
+        self.chain_nodes(branch_array, None, x, y, 0)
 
         if not in_animation:
             self.cur_index = self.find_in_flow("push " + self.current.method.name)
@@ -234,6 +285,11 @@ class StaticGraph(graphInterface):
                 return
 
         #Give animation_dot it's next target
+        i = 0
+        while not self.animation_path[i].visible:
+            i += 1
+        del self.animation_path[:i]
+
         self.dot.set_destination(self.animation_path[0])
 
     #Find the next method push from |flow|, this can lead to multiple animation_forwards
@@ -323,6 +379,7 @@ class StaticGraph(graphInterface):
             #Follow the last branch out
             self.cur_branch = self.nodes[self.cur_branch][-1].child_branches[-1]
             self.cur_branch_index = 0
+
         if not "Return" in map(lambda x: x.method.name, self.animation_path):
             #Add everything in the final branch, up to the method
             self.handle_non_user_methods_in_current_branch(next_method_print[1])
@@ -367,25 +424,28 @@ class StaticGraph(graphInterface):
         if hasattr(branched_node_array[0], '__iter__'):
             #Store the Y position the branch starts at
             start_y = y
-            #Calculate the total number of branches in this branch recursively
-            number_of_branches = self.count_branches(branched_node_array[0])
 
-            #Height of this branch is the height of a node times the number of branches
-            total_height = ((vertical_buffer + node_height) * number_of_branches)
+            if not const.Constants.linear_layout:
+                #Calculate the total number of branches in this branch recursively
+                number_of_branches = self.count_branches(branched_node_array[0])
 
-            #For the first path in this branch, determine half of it's height
-            half_height_cur_branch = ((self.count_branches(branched_node_array[0][0]) * (node_height + vertical_buffer)) / 2)
-            #Increment Y by half the total height minus half the height of the first path
-            y += (total_height / 2) - half_height_cur_branch
+                #Height of this branch is the height of a node times the number of branches
+                total_height = ((vertical_buffer + node_height) * number_of_branches)
+
+                #For the first path in this branch, determine half of it's height
+                half_height_cur_branch = ((self.count_branches(branched_node_array[0][0]) * (node_height + vertical_buffer)) / 2)
+                #Increment Y by half the total height minus half the height of the first path
+
+                y += (total_height / 2) - half_height_cur_branch
 
             #Find the longest path within this branch
             longest_array_length = self.longest_array(branched_node_array[0])
             new_parents = []
-            i = 0
 
             #For every path in this branch
-            for branch in branched_node_array[0]:
+            for i, branch in enumerate(branched_node_array[0]):
                 #Recurse on the path, store the returned final_node and add it to our new parent set
+
                 final_nodes_in_branch, branch_num = self.chain_nodes(branch, parent_nodes, x, y, branch_num + 1)
                 #Filter out nodes with method name Return, as this stops execution
                 new_parents.extend(filter(lambda x: x.method.name != "Return", pjViz.Utils.arrayUtils.flatten(final_nodes_in_branch)))
@@ -398,14 +458,22 @@ class StaticGraph(graphInterface):
                     half_height_next_branch = 0
 
                 #Decrement Y by half the height of this path and half the height of the next
-                y -= half_height_this_branch + half_height_next_branch
-                i += 1
+                if const.Constants.linear_layout:
+                    flat = pjViz.Utils.arrayUtils.flatten(branched_node_array[0][i])
+                    x += (node_width + horizontal_buffer) * len(filter(lambda x: x.name != "InvisibleNode", flat))
+                else:
+                    y -= half_height_this_branch + half_height_next_branch
 
             #Return Y to its initial position
             y = start_y
 
+            if const.Constants.linear_layout:
+                x_inc = x
+            else:
+                x_inc = x + ((node_width + horizontal_buffer) * longest_array_length)
+
             #Recurse on the remaining array, with new_parents, and x incremented by the longest path in the branch
-            final_nodes, branch_num = self.chain_nodes(branched_node_array[1:], new_parents, x + ((node_width + horizontal_buffer) * longest_array_length), y, branch_num)
+            final_nodes, branch_num = self.chain_nodes(branched_node_array[1:], new_parents, x_inc, y, branch_num)
 
             #If the returned node was None, this node is the final in a branch, return it
             if final_nodes is None:
@@ -419,7 +487,13 @@ class StaticGraph(graphInterface):
             #Create the node, set it's position and connect it to all of it's parents
             visible = branched_node_array[0].name != "InvisibleNode"
             node = Node(branched_node_array[0], visible=visible)
-            node.set_position(x, y)
+            if const.Constants.circular_layout:
+                circ_x = self.radius * math.sin(self.angle) + (self.window.width / 2)
+                circ_y = self.radius * math.cos(self.angle) + (self.window.height / 2)
+                self.angle += self.circle_step
+                node.set_position(circ_x, circ_y)
+            else:
+                node.set_position(x, y)
 
             parents = [node]
 
@@ -452,8 +526,16 @@ class StaticGraph(graphInterface):
             node.branch = branch_num
             node.index = len(self.nodes[branch_num]) - 1
 
+            if const.Constants.linear_layout:
+                if node.visible:
+                    x_inc = x + node_width + horizontal_buffer
+                else:
+                    x_inc = x
+            else:
+                x_inc = x + node_width + horizontal_buffer
+
             #Recurse on remaining array
-            final_node, branch_num = self.chain_nodes(branched_node_array[1:], parents, x + node_width + horizontal_buffer, y, branch_num, break_flag=len(parents) > 1)
+            final_node, branch_num = self.chain_nodes(branched_node_array[1:], parents, x_inc, y, branch_num, break_flag=len(parents) > 1)
 
             #If the returned node was None, this node is the final in a branch, return it
             if final_node is None:
@@ -545,15 +627,17 @@ class StaticGraph(graphInterface):
         self.current = node
 
         if entering:
-            self.stack.append(Frame(node, self.active_node.branch, self.active_node.index))
+            self.stack.append(Frame(node, self.active_node.branch, self.active_node.index, self.cam))
             if self.prev_index != 0:
                 self.cur_index = self.prev_index
                 self.prev_index = 0
             self.cur_branch = self.cur_branch_index = 0
+
         else:
             frame = self.stack.pop_to(node)
             self.cur_branch = frame.branch
             self.cur_branch_index = frame.index
+
 
             #If we're not in an animation, search through flow to find the first occurence of this method
             if not in_animation:
@@ -564,9 +648,13 @@ class StaticGraph(graphInterface):
 
         self.place_nodes(in_animation)
         self.animation_path = []
-        self.cam.set_pos(self.active_node.x, self.active_node.y)
 
-        self.dot.place(self.active_node.x, self.active_node.y)
+        if entering:
+            self.cam.set_pos(self.active_node.x, self.active_node.y)
+        else:
+            self.cam.set_pos(frame.cam_x + (self.window.width / 2), frame.cam_y + (self.window.height / 2))
+
+        self.dot.place(self.active_node)
 
     #Mouse click
     def handle_input(self, x, y):

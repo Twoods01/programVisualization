@@ -1,23 +1,36 @@
 
 class test {
     public static void main(String[] args) {
+        // firstThing("Hi");
+        // while(false){
+        //     if(ifCheck()){
+        //         One();
+        //     }
+        //     else {
+        //         Two();
+        //     }
+        // }
         branchTesting();
-        nestedLoop();
         String numString = recursiveString(5);
         System.out.println(numString);
         int num = addNumbersInString(numString);
         System.out.println(num);
-        nothing();
+        //lastThing();
     }
+
+    public static void firstThing(String name){return;}
+    public static void nextThing(){return;}
+    public static void lastThing(){return;}
+    public static void ifCheck(){return;}
 
     public static void nestedLoop(){
         int i = 0;
         int j = 0;
         if (One()) {
             while(i < 2){
-                One();
+                Two();
                 while(j < 3){
-                    Two();
+                    Three();
                     j++;
                 }
                 i++;
@@ -55,8 +68,8 @@ class test {
     public static int Three(){
         return 1;
     }
-    public static int Four(){
-        return 1;
+    public static boolean Four(){
+        return false;
     }
     public static void Five(){
         return;

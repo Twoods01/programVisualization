@@ -25,7 +25,7 @@ class Stack():
         return self.stack[-2]
 
     def draw(self):
-        map(lambda x: x.node.draw(stack_color), self.stack)
+        map(lambda x: x.node.draw(stack_color, texture=False), self.stack)
 
     #returns the method which was clicked or none if the coordinates are not part of the stack
     def get_clicked_item(self, x, y):
@@ -36,10 +36,12 @@ class Stack():
 
 class Frame():
 
-    def __init__(self, node, branch, index):
+    def __init__(self, node, branch, index, cam):
         self.node = node
         self.branch = branch
         self.index = index
+        self.cam_x = cam.x
+        self.cam_y = cam.y
 
     def __str__(self):
         return self.node.method.name + " " + str(self.branch) + ":" + str(self.index)

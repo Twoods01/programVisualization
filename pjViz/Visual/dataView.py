@@ -1,12 +1,13 @@
 __author__ = 'twoods0129'
 from pjViz.Parser.model import FieldDeclaration
+from pjViz.constants import Constants
 import pyglet
 
 class DataView():
     initial_x = 75
-    initial_y = 80
+    initial_y = 90
     max_nodes_in_row = 7
-    x_increment = 125
+    x_increment = 140
 
     def __init__(self, parsed):
         self.objects = []
@@ -56,11 +57,12 @@ class DataView():
         height = 50
         node_vertices = pyglet.graphics.vertex_list_indexed(4,
                                     [0, 1, 2, 0, 2, 3],
-                                    ('v3i', (-57, -25, 0,
-                                            57, -25, 0,
-                                            57, 25, 0,
-                                            -57, 25, 0)),
-                                    ('c3B', (197, 93, 204) * 4))
+                                    ('v3i', (-65, -25, 0,
+                                            65, -25, 0,
+                                            65, 25, 0,
+                                            -65, 25, 0)),
+                                    ('c3B', (0, 121, 153) * 4))
+        #197, 93, 204
 
         def __init__(self, param, field_array, x, y):
             self.x = x
@@ -104,7 +106,7 @@ class DataView():
         def draw(self):
             pyglet.gl.glPushMatrix()
             pyglet.gl.glPushMatrix()
-            y_offset = -10 * len(self.members)
+            y_offset = -8 * len(self.members)
             pyglet.gl.glTranslatef(self.x, self.y + y_offset, 0)
             obj_height = 1 + 0.2 * len(self.members)
             pyglet.gl.glScalef(1, obj_height, 1)
@@ -115,7 +117,7 @@ class DataView():
             pyglet.gl.glTranslatef(self.x, self.y, 0)
             #Label it with name and type
             pyglet.text.Label(str(self.var),
-                              font_name='Times New Roman',
+                              font_name=Constants.font,
                               font_size=12,
                               x = 0,
                               y = 0,
@@ -128,7 +130,7 @@ class DataView():
             for field in self.members:
                 pyglet.gl.glTranslatef(0, -15, 0)
                 pyglet.text.Label(str(field),
-                              font_name='Times New Roman',
+                              font_name=Constants.font,
                               font_size=10,
                               x = 0,
                               y = 0,
